@@ -5,3 +5,6 @@ authors = ["ProgramFOX <programfox@hotmail.be>"]
 
 [dependencies]
 hyper = "0.12"
+hyper-tls = "0.3.0"
+tokio = "0.1.7"
+futures = "0.1.21"

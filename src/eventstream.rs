@@ -4,6 +4,8 @@ use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use std::io::{self, Write};
+use signup::newuser::NewUser;
+use serde_json::Error;
 
 pub fn watch_event_stream(token: &'static str) {
     tokio::run(future::lazy(move || {
@@ -24,9 +26,16 @@ pub fn watch_event_stream(token: &'static str) {
             .request(req)
             .and_then(|res| {
                 res.into_body().for_each(|chunk| {
-                    io::stdout()
-                        .write_all(&chunk)
-                        .map_err(|e| panic!("Error on for_each chunk: {}", e))
+                    let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec()).unwrap_or("invalid chunk bytes".to_string());
+                    match NewUser::from_json(string_chunk) {
+                        Ok(user) => {
+                            println!("{}", &user.username);
+                        },
+                        _ => {
+                            println!("deserialize error for {}", string_chunk);
+                        }
+                    };
+                    Ok(())
                 })
             }).map_err(|err| {
                 println!("Error on get: {}", err);

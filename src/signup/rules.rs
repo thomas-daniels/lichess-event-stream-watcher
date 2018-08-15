@@ -5,13 +5,13 @@ trait SignupRule {
 }
 
 pub struct IpBlacklist {
-    blacklisted: Vec<String>
+    blacklisted: Vec<String>,
 }
 
 impl IpBlacklist {
     fn new(blacklist: Vec<String>) -> Self {
         IpBlacklist {
-            blacklisted: blacklist
+            blacklisted: blacklist,
         }
     }
 }

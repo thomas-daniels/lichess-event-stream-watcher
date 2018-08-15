@@ -3,9 +3,9 @@ use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
-use std::io::{self, Write};
-use signup::newuser::NewUser;
 use serde_json::Error;
+use signup::newuser::NewUser;
+use std::io::{self, Write};
 
 pub fn watch_event_stream(token: &'static str) {
     tokio::run(future::lazy(move || {
@@ -26,11 +26,12 @@ pub fn watch_event_stream(token: &'static str) {
             .request(req)
             .and_then(|res| {
                 res.into_body().for_each(|chunk| {
-                    let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec()).unwrap_or("invalid chunk bytes".to_string());
+                    let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec())
+                        .unwrap_or("invalid chunk bytes".to_string());
                     match NewUser::from_json(string_chunk) {
                         Ok(user) => {
                             println!("{}", &user.username);
-                        },
+                        }
                         _ => {
                             println!("deserialize error for {}", string_chunk);
                         }

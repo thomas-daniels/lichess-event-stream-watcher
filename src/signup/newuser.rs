@@ -7,7 +7,7 @@ pub struct NewUser {
     pub email: String,
     pub ip: String,
     pub user_agent: String,
-    pub finger_print: Option<String>
+    pub finger_print: Option<String>,
 }
 
 impl NewUser {

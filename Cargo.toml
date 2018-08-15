@@ -1,0 +1,6 @@
+[package]
+name = "lichess-event-stream"
+version = "0.1.0"
+authors = ["ProgramFOX <programfox@hotmail.be>"]
+
+[dependencies]

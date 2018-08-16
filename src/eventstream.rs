@@ -4,7 +4,7 @@ use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use serde_json::Error;
-use signup::newuser::NewUser;
+use event::Event;
 use std::io::{self, Write};
 
 pub fn watch_event_stream(token: &'static str) {
@@ -28,9 +28,13 @@ pub fn watch_event_stream(token: &'static str) {
                 res.into_body().for_each(|chunk| {
                     let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec())
                         .unwrap_or("invalid chunk bytes".to_string());
-                    match NewUser::from_json(string_chunk) {
-                        Ok(user) => {
-                            println!("{}", &user.username);
+                    match Event::from_json(string_chunk) {
+                        Ok(event) => {
+                            match event {
+                                Event::Signup { username, .. } => {
+                                    println!("{}", username);
+                                }
+                            }
                         }
                         _ => {
                             println!("deserialize error for {}", string_chunk);

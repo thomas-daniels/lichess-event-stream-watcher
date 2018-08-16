@@ -14,6 +14,7 @@ extern crate serde_json;
 mod eventstream;
 mod signup;
 mod token;
+mod event;
 
 fn main() {
     eventstream::watch_event_stream(token::TOKEN);

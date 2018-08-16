@@ -1,7 +1,7 @@
-use signup::newuser::NewUser;
+use event::Event;
 
 trait SignupRule {
-    fn let_in(&self, user: &NewUser) -> bool;
+    fn let_in(&self, ip: &String) -> bool;
 }
 
 pub struct IpBlacklist {
@@ -17,7 +17,7 @@ impl IpBlacklist {
 }
 
 impl SignupRule for IpBlacklist {
-    fn let_in(&self, user: &NewUser) -> bool {
-        !self.blacklisted.contains(&user.ip)
+    fn let_in(&self, ip: &String) -> bool {
+        !self.blacklisted.contains(ip)
     }
 }

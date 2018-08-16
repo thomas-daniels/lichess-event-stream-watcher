@@ -23,11 +23,11 @@ pub struct Username(pub String);
 #[derive(Deserialize)]
 pub struct Email(pub String);
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Ip(pub String);
 
 #[derive(Deserialize)]
 pub struct UserAgent(pub String);
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct FingerPrint(pub String);

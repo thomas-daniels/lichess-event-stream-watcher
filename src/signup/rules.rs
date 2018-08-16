@@ -1,23 +1,24 @@
-use event::Event;
+use event;
+use std::fs::File;
 
-trait SignupRule {
-    fn let_in(&self, ip: &String) -> bool;
+pub struct SignupRulesManager {
+    rules: SignupRules,
+    rules_path: String,
 }
 
-pub struct IpBlacklist {
-    blacklisted: Vec<String>,
+#[derive(Serialize, Deserialize)]
+struct SignupRules {
+    ip_blacklist: Vec<event::Ip>,
+    finger_blacklist: Vec<event::FingerPrint>,
 }
 
-impl IpBlacklist {
-    fn new(blacklist: Vec<String>) -> Self {
-        IpBlacklist {
-            blacklisted: blacklist,
-        }
-    }
-}
-
-impl SignupRule for IpBlacklist {
-    fn let_in(&self, ip: &String) -> bool {
-        !self.blacklisted.contains(ip)
+impl SignupRulesManager {
+    fn new(rules_path: String) -> Result<Self, Box<std::error::Error>> {
+        let f = File::open(&rules_path)?;
+        let r = serde_json::from_reader(f)?;
+        Ok(SignupRulesManager {
+            rules: r,
+            rules_path: rules_path,
+        })
     }
 }

@@ -1,14 +1,14 @@
 #[derive(Deserialize)]
-#[serde(tag="t")]
+#[serde(tag = "t")]
 pub enum Event {
-    #[serde(rename_all="camelCase", rename="signup")]
+    #[serde(rename_all = "camelCase", rename = "signup")]
     Signup {
         username: Username,
         email: Email,
         ip: Ip,
         user_agent: UserAgent,
-        finger_print: Option<FingerPrint>
-    }
+        finger_print: Option<FingerPrint>,
+    },
 }
 
 impl Event {

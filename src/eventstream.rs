@@ -1,10 +1,10 @@
+use event::{Event, Ip, Username};
 use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use serde_json::Error;
-use event::{Event, Ip, Username};
 use std::io::{self, Write};
 
 pub fn watch_event_stream(token: &'static str) {
@@ -29,15 +29,13 @@ pub fn watch_event_stream(token: &'static str) {
                     let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec())
                         .unwrap_or("invalid chunk bytes".to_string());
                     match Event::from_json(string_chunk) {
-                        Ok(event) => {
-                            match event {
-                                Event::Signup { username, ip, .. } => {
-                                    let Username(username) = username;
-                                    let Ip(ip) = ip;
-                                    println!("{} {}", username, ip);
-                                }
+                        Ok(event) => match event {
+                            Event::Signup { username, ip, .. } => {
+                                let Username(username) = username;
+                                let Ip(ip) = ip;
+                                println!("{} {}", username, ip);
                             }
-                        }
+                        },
                         _ => {
                             println!("deserialize error for {}", string_chunk);
                         }

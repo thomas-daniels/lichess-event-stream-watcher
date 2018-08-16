@@ -11,10 +11,10 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
+mod event;
 mod eventstream;
 mod signup;
 mod token;
-mod event;
 
 fn main() {
     eventstream::watch_event_stream(token::TOKEN);

@@ -3,11 +3,11 @@
 pub enum Event {
     #[serde(rename_all="camelCase", rename="signup")]
     Signup {
-        username: String,
-        email: String,
-        ip: String,
-        user_agent: String,
-        finger_print: Option<String>
+        username: Username,
+        email: Email,
+        ip: Ip,
+        user_agent: UserAgent,
+        finger_print: Option<FingerPrint>
     }
 }
 
@@ -16,3 +16,18 @@ impl Event {
         serde_json::from_str(json)
     }
 }
+
+#[derive(Deserialize)]
+pub struct Username(pub String);
+
+#[derive(Deserialize)]
+pub struct Email(pub String);
+
+#[derive(Deserialize)]
+pub struct Ip(pub String);
+
+#[derive(Deserialize)]
+pub struct UserAgent(pub String);
+
+#[derive(Deserialize)]
+pub struct FingerPrint(pub String);

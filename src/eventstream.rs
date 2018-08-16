@@ -4,7 +4,7 @@ use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use serde_json::Error;
-use event::Event;
+use event::{Event, Ip, Username};
 use std::io::{self, Write};
 
 pub fn watch_event_stream(token: &'static str) {
@@ -31,8 +31,10 @@ pub fn watch_event_stream(token: &'static str) {
                     match Event::from_json(string_chunk) {
                         Ok(event) => {
                             match event {
-                                Event::Signup { username, .. } => {
-                                    println!("{}", username);
+                                Event::Signup { username, ip, .. } => {
+                                    let Username(username) = username;
+                                    let Ip(ip) = ip;
+                                    println!("{} {}", username, ip);
                                 }
                             }
                         }

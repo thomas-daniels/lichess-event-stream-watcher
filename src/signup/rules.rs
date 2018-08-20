@@ -1,4 +1,4 @@
-use event::{Username, Email, Ip, UserAgent, FingerPrint, Stringifiable};
+use event::{Username, Email, Ip, UserAgent, FingerPrint};
 use std::fs::File;
 
 pub struct SignupRulesManager {
@@ -36,9 +36,9 @@ impl Rule {
         match self {
             Rule::IpMatch(exact) => exact.eq(ip),
             Rule::PrintMatch(exact) => exact.eq(finger_print),
-            Rule::EmailContains(part) => email.s().contains(part),
-            Rule::UsernameContains(part) => username.s().contains(part),
-            Rule::UseragentLengthLte(len) => user_agent.s().len() <= *len,
+            Rule::EmailContains(part) => email.0.contains(part),
+            Rule::UsernameContains(part) => username.0.contains(part),
+            Rule::UseragentLengthLte(len) => user_agent.0.len() <= *len,
         }
     }
 }

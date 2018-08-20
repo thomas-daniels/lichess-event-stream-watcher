@@ -19,10 +19,10 @@ impl Event {
 
 macro_rules! quick_stringify {
     ($t:path) => {
-        impl std::ops::Not for $t {
-            type Output = String;
+        impl<'a> std::ops::Not for &'a $t {
+            type Output = &'a String;
 
-            fn not(self) -> String {
+            fn not(self) -> &'a String {
                 let $t(s) = self;
 
                 s

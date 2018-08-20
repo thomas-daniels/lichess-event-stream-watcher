@@ -25,12 +25,29 @@ impl SignupRulesManager {
 #[derive(Serialize, Deserialize)]
 pub enum Rule {
     IpMatch(Ip),
+    PrintMatch(FingerPrint),
+    EmailContains(String),
+    UsernameContains(String),
+    UseragentLengthLte(usize)
 }
 
 impl Rule {
-    fn take_action(&self, ip: &Ip) -> bool {
+    fn take_action(&self, username: &Username, email: &Email, ip: &Ip, user_agent: &UserAgent, finger_print: &FingerPrint) -> bool {
         match self {
             Rule::IpMatch(exact) => exact.eq(ip),
+            Rule::PrintMatch(exact) => exact.eq(finger_print),
+            Rule::EmailContains(part) => {
+                let Email(email) = email;
+                email.contains(part)
+            },
+            Rule::UsernameContains(part) => {
+                let Username(username) = username;
+                username.contains(part)
+            },
+            Rule::UseragentLengthLte(len) => {
+                let UserAgent(ua) = user_agent;
+                ua.len() <= *len
+            }
         }
     }
 }

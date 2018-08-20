@@ -17,12 +17,14 @@ impl Event {
     }
 }
 
+trait Stringifiable {
+    fn s(&self) -> &String;
+}
+
 macro_rules! quick_stringify {
     ($t:path) => {
-        impl<'a> std::ops::Not for &'a $t {
-            type Output = &'a String;
-
-            fn not(self) -> &'a String {
+        impl<'a> Stringifiable for $t {
+            fn s(&self) -> &String {
                 let $t(s) = self;
 
                 s

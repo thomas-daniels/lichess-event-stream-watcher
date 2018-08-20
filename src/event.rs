@@ -17,17 +17,41 @@ impl Event {
     }
 }
 
+macro_rules! quick_stringify {
+    ($t:path) => {
+        impl std::ops::Not for $t {
+            type Output = String;
+
+            fn not(self) -> String {
+                let $t(s) = self;
+
+                s
+            }
+        }
+    }
+}
+
 #[derive(Deserialize, PartialEq)]
 pub struct Username(pub String);
+
+quick_stringify!(Username);
 
 #[derive(Deserialize, PartialEq)]
 pub struct Email(pub String);
 
+quick_stringify!(Email);
+
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct Ip(pub String);
+
+quick_stringify!(Ip);
 
 #[derive(Deserialize, PartialEq)]
 pub struct UserAgent(pub String);
 
+quick_stringify!(UserAgent);
+
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct FingerPrint(pub String);
+
+quick_stringify!(FingerPrint);

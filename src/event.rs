@@ -17,7 +17,7 @@ impl Event {
     }
 }
 
-trait Stringifiable {
+pub trait Stringifiable {
     fn s(&self) -> &String;
 }
 

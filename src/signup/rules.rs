@@ -1,4 +1,4 @@
-use event;
+use event::{Username, Email, Ip, UserAgent, FingerPrint};
 use std::fs::File;
 
 pub struct SignupRulesManager {
@@ -8,8 +8,7 @@ pub struct SignupRulesManager {
 
 #[derive(Serialize, Deserialize)]
 struct SignupRules {
-    ip_blacklist: Vec<event::Ip>,
-    finger_blacklist: Vec<event::FingerPrint>,
+    rules: Vec<Rule>
 }
 
 impl SignupRulesManager {
@@ -20,5 +19,18 @@ impl SignupRulesManager {
             rules: r,
             rules_path: rules_path,
         })
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum Rule {
+    IpMatch(Ip),
+}
+
+impl Rule {
+    fn take_action(&self, ip: &Ip) -> bool {
+        match self {
+            Rule::IpMatch(exact) => exact.eq(ip),
+        }
     }
 }

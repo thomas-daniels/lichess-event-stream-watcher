@@ -4,8 +4,6 @@ use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
-use serde_json::Error;
-use std::io::{self, Write};
 
 pub fn watch_event_stream(token: &'static str) {
     tokio::run(future::lazy(move || {

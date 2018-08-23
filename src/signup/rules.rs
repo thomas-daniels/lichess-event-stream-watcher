@@ -33,10 +33,15 @@ pub enum Criterion {
 }
 
 impl Criterion {
-    pub fn take_action(&self, username: &Username, email: &Email, ip: &Ip, user_agent: &UserAgent, finger_print: &FingerPrint) -> bool {
+    pub fn take_action(&self, username: &Username, email: &Email, ip: &Ip, user_agent: &UserAgent, finger_print: &Option<FingerPrint>) -> bool {
         match self {
             Criterion::IpMatch(exact) => exact.eq(ip),
-            Criterion::PrintMatch(exact) => exact.eq(finger_print),
+            Criterion::PrintMatch(exact) => {
+                match finger_print {
+                    None => false,
+                    Some(fp) => exact.eq(fp)
+                }
+            },
             Criterion::EmailContains(part) => email.0.contains(part),
             Criterion::UsernameContains(part) => username.0.contains(part),
             Criterion::UseragentLengthLte(len) => user_agent.0.len() <= *len,

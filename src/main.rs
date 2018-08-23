@@ -17,5 +17,5 @@ mod signup;
 mod conf;
 
 fn main() {
-    eventstream::watch_event_stream(conf::TOKEN);
+    eventstream::watch_event_stream(conf::TOKEN, conf::RULES_PATH);
 }

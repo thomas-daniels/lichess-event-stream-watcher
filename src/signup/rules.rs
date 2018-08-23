@@ -2,12 +2,12 @@ use event::{Username, Email, Ip, UserAgent, FingerPrint};
 use std::fs::File;
 
 pub struct SignupRulesManager {
-    rules: Vec<Rule>,
+    pub rules: Vec<Rule>,
     rules_path: String,
 }
 
 impl SignupRulesManager {
-    fn new(rules_path: String) -> Result<Self, Box<std::error::Error>> {
+    pub fn new(rules_path: String) -> Result<Self, Box<std::error::Error>> {
         let f = File::open(&rules_path)?;
         let r = serde_json::from_reader(f)?;
         Ok(SignupRulesManager {
@@ -19,8 +19,8 @@ impl SignupRulesManager {
 
 #[derive(Serialize, Deserialize)]
 pub struct Rule {
-    criterion: Criterion,
-    action: Action,
+    pub criterion: Criterion,
+    pub action: Action,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -33,7 +33,7 @@ pub enum Criterion {
 }
 
 impl Criterion {
-    fn take_action(&self, username: &Username, email: &Email, ip: &Ip, user_agent: &UserAgent, finger_print: &FingerPrint) -> bool {
+    pub fn take_action(&self, username: &Username, email: &Email, ip: &Ip, user_agent: &UserAgent, finger_print: &FingerPrint) -> bool {
         match self {
             Criterion::IpMatch(exact) => exact.eq(ip),
             Criterion::PrintMatch(exact) => exact.eq(finger_print),
@@ -55,7 +55,7 @@ pub enum Action {
 }
 
 impl Action {
-    fn api_endpoint(&self, username: &Username) -> String {
+    pub fn api_endpoint(&self, username: &Username) -> String {
         match self {
             Action::Shadowban => format!("https://lichess.org/mod/{}/troll/true", username.0),
             Action::EngineMark => format!("https://lichess.org/mod/{}/engine/true", username.0),

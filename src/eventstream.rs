@@ -4,9 +4,13 @@ use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
+use signup::rules::*;
 
-pub fn watch_event_stream(token: &'static str) {
+pub fn watch_event_stream(token: &'static str, rules_path: &'static str) {
     tokio::run(future::lazy(move || {
+        let rule_manager = SignupRulesManager::new(rules_path.to_string()).expect("could not load rules");
+        println!("Currently {} rules.", rule_manager.rules.len());
+
         let https = HttpsConnector::new(4).unwrap();
         let client = Client::builder().build::<_, Body>(https);
 

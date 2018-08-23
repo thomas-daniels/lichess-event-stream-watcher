@@ -62,6 +62,7 @@ pub enum Action {
     IpBan,
     Close,
     EnableChatPanic,
+    NotifySlack,
 }
 
 impl Action {
@@ -73,6 +74,7 @@ impl Action {
             Action::IpBan => format!("https://lichess.org/mod/{}/ban/true", username.0),
             Action::Close => format!("https://lichess.org/mod/{}/close", username.0),
             Action::EnableChatPanic => String::from("https://lichess.org/mod/chat-panic"),
+            Action::NotifySlack => format!("https://lichess.org/mod/{}/notify-slack", username.0),
         }
     }
 }

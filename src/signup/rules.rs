@@ -1,6 +1,5 @@
 use event::{Username, Email, Ip, UserAgent, FingerPrint};
 use std::fs::File;
-use signup::actions::Action;
 
 pub struct SignupRulesManager {
     rules: SignupRules,
@@ -48,4 +47,14 @@ impl Criterion {
             Criterion::UseragentLengthLte(len) => user_agent.0.len() <= *len,
         }
     }
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum Action {
+    Shadowban,
+    EngineMark,
+    BoostMark,
+    IpBan,
+    Close,
+    EnableChatPanic
 }

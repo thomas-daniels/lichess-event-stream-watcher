@@ -23,14 +23,11 @@ pub struct Username(pub String);
 #[derive(Deserialize, PartialEq)]
 pub struct Email(pub String);
 
-
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct Ip(pub String);
 
-
 #[derive(Deserialize, PartialEq)]
 pub struct UserAgent(pub String);
-
 
 #[derive(Serialize, Deserialize, PartialEq)]
 pub struct FingerPrint(pub String);

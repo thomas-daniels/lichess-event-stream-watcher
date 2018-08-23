@@ -1,4 +1,4 @@
-use event::{Username, Email, Ip, UserAgent, FingerPrint};
+use event::{Email, FingerPrint, Ip, UserAgent, Username};
 use std::fs::File;
 
 pub struct SignupRulesManager {
@@ -29,18 +29,23 @@ pub enum Criterion {
     PrintMatch(FingerPrint),
     EmailContains(String),
     UsernameContains(String),
-    UseragentLengthLte(usize)
+    UseragentLengthLte(usize),
 }
 
 impl Criterion {
-    pub fn take_action(&self, username: &Username, email: &Email, ip: &Ip, user_agent: &UserAgent, finger_print: &Option<FingerPrint>) -> bool {
+    pub fn take_action(
+        &self,
+        username: &Username,
+        email: &Email,
+        ip: &Ip,
+        user_agent: &UserAgent,
+        finger_print: &Option<FingerPrint>,
+    ) -> bool {
         match self {
             Criterion::IpMatch(exact) => exact.eq(ip),
-            Criterion::PrintMatch(exact) => {
-                match finger_print {
-                    None => false,
-                    Some(fp) => exact.eq(fp)
-                }
+            Criterion::PrintMatch(exact) => match finger_print {
+                None => false,
+                Some(fp) => exact.eq(fp),
             },
             Criterion::EmailContains(part) => email.0.contains(part),
             Criterion::UsernameContains(part) => username.0.contains(part),
@@ -56,7 +61,7 @@ pub enum Action {
     BoostMark,
     IpBan,
     Close,
-    EnableChatPanic
+    EnableChatPanic,
 }
 
 impl Action {
@@ -69,5 +74,5 @@ impl Action {
             Action::Close => format!("https://lichess.org/mod/{}/close", username.0),
             Action::EnableChatPanic => String::from("https://lichess.org/mod/chat-panic"),
         }
-    } 
+    }
 }

@@ -11,14 +11,14 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
+mod conf;
 mod event;
+mod eventhandler;
 mod eventstream;
 mod signup;
-mod conf;
-mod eventhandler;
 
-use std::thread;
 use std::sync::mpsc::channel;
+use std::thread;
 
 fn main() {
     let (tx, rx) = channel::<event::Event>();

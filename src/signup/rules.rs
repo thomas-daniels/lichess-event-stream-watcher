@@ -2,13 +2,8 @@ use event::{Username, Email, Ip, UserAgent, FingerPrint};
 use std::fs::File;
 
 pub struct SignupRulesManager {
-    rules: SignupRules,
+    rules: Vec<Rule>,
     rules_path: String,
-}
-
-#[derive(Serialize, Deserialize)]
-struct SignupRules {
-    rules: Vec<Rule>
 }
 
 impl SignupRulesManager {

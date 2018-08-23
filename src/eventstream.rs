@@ -8,7 +8,7 @@ use std::sync::mpsc::Sender;
 
 pub fn watch_event_stream(tx: Sender<Event>, token: &'static str, rules_path: &'static str) {
     tokio::run(future::lazy(move || {
-        let https = HttpsConnector::new(4).unwrap();
+        let https = HttpsConnector::new(2).unwrap();
         let client = Client::builder().build::<_, Body>(https);
 
         let mut req = Request::new(Body::from(""));

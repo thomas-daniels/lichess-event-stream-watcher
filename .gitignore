@@ -1,4 +1,4 @@
 /target
 **/*.rs.bk
-src/token.rs
+src/conf.rs
 rules/

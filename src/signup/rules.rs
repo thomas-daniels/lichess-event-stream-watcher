@@ -58,3 +58,16 @@ pub enum Action {
     Close,
     EnableChatPanic
 }
+
+impl Action {
+    fn api_endpoint(&self, username: &Username) -> String {
+        match self {
+            Action::Shadowban => format!("https://lichess.org/mod/{}/troll/true", username.0),
+            Action::EngineMark => format!("https://lichess.org/mod/{}/engine/true", username.0),
+            Action::BoostMark => format!("https://lichess.org/mod/{}/booster/true", username.0),
+            Action::IpBan => format!("https://lichess.org/mod/{}/ban/true", username.0),
+            Action::Close => format!("https://lichess.org/mod/{}/close", username.0),
+            Action::EnableChatPanic => String::from("https://lichess.org/mod/chat-panic"),
+        }
+    } 
+}

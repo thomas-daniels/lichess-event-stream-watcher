@@ -1,5 +1,6 @@
 use event::{Username, Email, Ip, UserAgent, FingerPrint};
 use std::fs::File;
+use signup::actions::Action;
 
 pub struct SignupRulesManager {
     rules: SignupRules,
@@ -23,7 +24,13 @@ impl SignupRulesManager {
 }
 
 #[derive(Serialize, Deserialize)]
-pub enum Rule {
+pub struct Rule {
+    criterion: Criterion,
+    action: Action,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum Criterion {
     IpMatch(Ip),
     PrintMatch(FingerPrint),
     EmailContains(String),
@@ -31,14 +38,14 @@ pub enum Rule {
     UseragentLengthLte(usize)
 }
 
-impl Rule {
+impl Criterion {
     fn take_action(&self, username: &Username, email: &Email, ip: &Ip, user_agent: &UserAgent, finger_print: &FingerPrint) -> bool {
         match self {
-            Rule::IpMatch(exact) => exact.eq(ip),
-            Rule::PrintMatch(exact) => exact.eq(finger_print),
-            Rule::EmailContains(part) => email.0.contains(part),
-            Rule::UsernameContains(part) => username.0.contains(part),
-            Rule::UseragentLengthLte(len) => user_agent.0.len() <= *len,
+            Criterion::IpMatch(exact) => exact.eq(ip),
+            Criterion::PrintMatch(exact) => exact.eq(finger_print),
+            Criterion::EmailContains(part) => email.0.contains(part),
+            Criterion::UsernameContains(part) => username.0.contains(part),
+            Criterion::UseragentLengthLte(len) => user_agent.0.len() <= *len,
         }
     }
 }

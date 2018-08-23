@@ -4,13 +4,10 @@ use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
-use signup::rules::*;
+use std::sync::mpsc::Sender;
 
-pub fn watch_event_stream(token: &'static str, rules_path: &'static str) {
+pub fn watch_event_stream(tx: Sender<Event>, token: &'static str, rules_path: &'static str) {
     tokio::run(future::lazy(move || {
-        let rule_manager = SignupRulesManager::new(rules_path.to_string()).expect("could not load rules");
-        println!("Currently {} rules.", rule_manager.rules.len());
-
         let https = HttpsConnector::new(4).unwrap();
         let client = Client::builder().build::<_, Body>(https);
 
@@ -31,22 +28,7 @@ pub fn watch_event_stream(token: &'static str, rules_path: &'static str) {
                     let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec())
                         .unwrap_or("invalid chunk bytes".to_string());
                     match Event::from_json(string_chunk) {
-                        Ok(event) => match event {
-                            Event::Signup { username, email, ip, user_agent, finger_print } => {
-                                println!("{}", username.0);
-                                for rule in &rule_manager.rules {
-                                    if (rule.criterion.take_action(&username, &email, &ip, &user_agent, &finger_print)) {
-                                        let mut action_req = Request::new(Body::from(""));
-                                        *action_req.uri_mut() = rule.action.api_endpoint(&username).parse().unwrap();
-                                        action_req.headers_mut().insert(
-                                            hyper::header::AUTHORIZATION,
-                                            HeaderValue::from_str(&bearer).unwrap(),
-                                        );
-                                        // TODO: perform action_req
-                                    }
-                                }
-                            }
-                        },
+                        Ok(event) => tx.send(event).unwrap(),
                         _ => {
                             println!("deserialize error for {}", string_chunk);
                         }

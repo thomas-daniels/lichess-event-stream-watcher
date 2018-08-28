@@ -8,7 +8,7 @@ use std::sync::mpsc::Receiver;
 use std::thread;
 
 pub fn handle_events(rx: Receiver<Event>, token: &'static str, rules_path: &'static str) {
-    let rule_manager =
+    let mut rule_manager =
         SignupRulesManager::new(rules_path.to_string()).expect("could not load rules");
     println!("Currently {} rules.", rule_manager.rules.len());
 
@@ -59,6 +59,12 @@ pub fn handle_events(rx: Receiver<Event>, token: &'static str, rules_path: &'sta
                     }
                 }
             }
+            Event::InternalAddRule { rule } => match rule_manager.add_rule(rule) {
+                Err(err) => {
+                    println!("Error on .add_rule: {}", err);
+                }
+                _ => {}
+            },
         }
     }
 }

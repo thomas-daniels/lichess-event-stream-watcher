@@ -1,3 +1,5 @@
+use signup::rules::Rule;
+
 #[derive(Deserialize)]
 #[serde(tag = "t")]
 pub enum Event {
@@ -8,6 +10,9 @@ pub enum Event {
         ip: Ip,
         user_agent: UserAgent,
         finger_print: Option<FingerPrint>,
+    },
+    InternalAddRule {
+        rule: Rule,
     },
 }
 

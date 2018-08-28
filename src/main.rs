@@ -32,6 +32,8 @@ fn main() {
             conf::RULES_PATH,
         ));
 
+        tokio::spawn(slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN));
+
         eventhandler::handle_events(rx, conf::TOKEN, conf::RULES_PATH);
 
         Ok(())

@@ -1,12 +1,11 @@
 use event::Event;
 use futures::future;
 use hyper::header::HeaderValue;
-use hyper::rt::{Future, Stream};
+use hyper::rt::Future;
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use signup::rules::*;
 use std::sync::mpsc::Receiver;
-use std::thread;
 use tokio;
 
 pub fn handle_events(rx: Receiver<Event>, token: &'static str, rules_path: &'static str) {
@@ -27,13 +26,13 @@ pub fn handle_events(rx: Receiver<Event>, token: &'static str, rules_path: &'sta
             } => {
                 println!("{}", username.0);
                 for rule in &rule_manager.rules {
-                    if (rule.criterion.take_action(
+                    if rule.criterion.take_action(
                         &username,
                         &email,
                         &ip,
                         &user_agent,
                         &finger_print,
-                    )) {
+                    ) {
                         let https = HttpsConnector::new(1).unwrap();
                         let client = Client::builder().build::<_, Body>(https);
 

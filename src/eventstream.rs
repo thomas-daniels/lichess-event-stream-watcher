@@ -1,4 +1,4 @@
-use event::{Event, Ip, Username};
+use event::Event;
 use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};

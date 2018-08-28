@@ -22,7 +22,6 @@ mod slack;
 
 use futures::future;
 use std::sync::mpsc::channel;
-use std::thread;
 
 fn main() {
     tokio::run(future::lazy(move || {

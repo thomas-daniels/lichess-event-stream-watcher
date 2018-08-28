@@ -19,7 +19,7 @@ pub fn connect_to_slack(token: &'static str) {
 
         req.headers_mut().insert(
             hyper::header::CONTENT_TYPE,
-            hyper::header::HeaderValue::from_static("application/x-www-form-urlencoded"),
+            HeaderValue::from_static("application/x-www-form-urlencoded"),
         );
         client
             .request(req)
@@ -33,7 +33,7 @@ pub fn connect_to_slack(token: &'static str) {
                     _ => "",
                 };
 
-                let (mut socket, response) =
+                let (mut socket, _) =
                     connect(Url::parse(ws_url).unwrap()).expect("Cannot connect in rtm_handler");
 
                 loop {
@@ -42,7 +42,7 @@ pub fn connect_to_slack(token: &'static str) {
                         .expect("Error reading Slack WebSocket message");
                     println!("Received msg: {}", msg);
                 }
-                Ok(())
+                Ok(()) // unreachable code, but required for tokio::spawn
             })
     }));
 }

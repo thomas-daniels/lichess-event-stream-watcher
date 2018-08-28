@@ -4,11 +4,10 @@ use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use serde_json;
-use std::sync::mpsc::{Receiver, Sender};
 use tungstenite::{connect, Message};
 use url::Url;
 
-pub fn connect_to_slack(token: &'static str, tx: Sender<String>) {
+pub fn connect_to_slack(token: &'static str) {
     tokio::spawn(future::lazy(move || {
         let https = HttpsConnector::new(2).unwrap();
         let client = Client::builder().build::<_, Body>(https);
@@ -32,24 +31,18 @@ pub fn connect_to_slack(token: &'static str, tx: Sender<String>) {
                 let ws_url = match &resp["url"] {
                     serde_json::Value::String(s) => s,
                     _ => "",
-                }.to_owned();
-                tx.send(ws_url).unwrap();
+                };
+
+                let (mut socket, response) =
+                    connect(Url::parse(ws_url).unwrap()).expect("Cannot connect in rtm_handler");
+
+                loop {
+                    let msg = socket
+                        .read_message()
+                        .expect("Error reading Slack WebSocket message");
+                    println!("Received msg: {}", msg);
+                }
                 Ok(())
             })
     }));
-}
-
-pub fn rtm_handler(rx: Receiver<String>) {
-    let url = rx.recv().unwrap();
-    println!("url: {}", url);
-
-    let (mut socket, response) =
-        connect(Url::parse(&url).unwrap()).expect("Cannot connect in rtm_handler");
-
-    loop {
-        let msg = socket
-            .read_message()
-            .expect("Error reading Slack WebSocket message");
-        println!("Received msg: {}", msg);
-    }
 }

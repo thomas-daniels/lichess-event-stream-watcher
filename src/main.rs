@@ -25,11 +25,6 @@ use std::sync::mpsc::channel;
 use std::thread;
 
 fn main() {
-    let (rtm_tx, rtm_rx) = channel::<String>();
-    thread::spawn(move || {
-        slack::rtm::rtm_handler(rtm_rx);
-    });
-
     tokio::run(future::lazy(move || {
         let (tx, rx) = channel::<event::Event>();
 
@@ -39,7 +34,7 @@ fn main() {
             conf::RULES_PATH,
         ));
 
-        slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN, rtm_tx.clone());
+        slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN);
 
         eventhandler::handle_events(rx, conf::TOKEN, conf::RULES_PATH);
 

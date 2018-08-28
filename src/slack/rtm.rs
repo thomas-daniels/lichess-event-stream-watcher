@@ -5,7 +5,8 @@ use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use serde_json;
 use std::sync::mpsc::{Receiver, Sender};
-use ws;
+use tungstenite::{connect, Message};
+use url::Url;
 
 pub fn connect_to_slack(token: &'static str, tx: Sender<String>) {
     tokio::spawn(future::lazy(move || {
@@ -40,11 +41,15 @@ pub fn connect_to_slack(token: &'static str, tx: Sender<String>) {
 
 pub fn rtm_handler(rx: Receiver<String>) {
     let url = rx.recv().unwrap();
+    println!("url: {}", url);
 
-    ws::connect(url, |out| {
-        move |msg| {
-            println!("msg: {}", msg);
-            Ok(())
-        }
-    }).unwrap();
+    let (mut socket, response) =
+        connect(Url::parse(&url).unwrap()).expect("Cannot connect in rtm_handler");
+
+    loop {
+        let msg = socket
+            .read_message()
+            .expect("Error reading Slack WebSocket message");
+        println!("Received msg: {}", msg);
+    }
 }

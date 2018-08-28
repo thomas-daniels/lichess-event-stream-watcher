@@ -4,7 +4,8 @@ extern crate futures;
 extern crate hyper;
 extern crate hyper_tls;
 extern crate tokio;
-extern crate ws;
+extern crate tungstenite;
+extern crate url;
 
 #[macro_use]
 extern crate serde_derive;

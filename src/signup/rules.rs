@@ -15,6 +15,13 @@ impl SignupRulesManager {
             rules_path: rules_path,
         })
     }
+
+    pub fn add_rule(&mut self, rule: Rule) -> Result<(), Box<std::error::Error>> {
+        self.rules.push(rule);
+        let f = File::open(&self.rules_path)?;
+        serde_json::to_writer(f, &self.rules)?;
+        Ok(())
+    }
 }
 
 #[derive(Serialize, Deserialize)]

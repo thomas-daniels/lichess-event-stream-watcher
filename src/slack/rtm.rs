@@ -4,6 +4,7 @@ use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use serde_json;
+use slack::event::Event;
 use tungstenite::{connect, Message};
 use url::Url;
 
@@ -46,27 +47,26 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str) {
                         .expect("Error reading Slack WebSocket message");
                     println!("Received msg: {}", &msg);
                     match msg {
-                        Message::Text(text) => {
-                            let message: serde_json::Value = serde_json::from_str(&text).expect("Could not deserialize Slack JSON message");
-                            if message["type"].eq(&serde_json::Value::String("message".to_string())) {
-                                match message["text"] {
-                                    serde_json::Value::String(ref text) => {
-                                        if text.starts_with(&bot_ping) {
-                                            match message["channel"] {
-                                                serde_json::Value::String(ref channel) => {
-                                                    println!("ok");
-                                                    id += 1;
-                                                    socket.write_message(Message::Text(format!("{{\"id\":{},\"type\":\"message\",\"channel\":\"{}\",\"text\":\"pong\"}}", id, channel))).unwrap();
-                                                },
-                                                _ => {},
-                                            }
-                                        }
-                                    },
-                                    _ => {}
+                        Message::Text(text) => match serde_json::from_str(&text) {
+                            Ok(message) => match message {
+                                Event::Message { text, channel, .. } => {
+                                    if text.starts_with(&bot_ping) {
+                                        println!("ok");
+                                        id += 1;
+                                        socket
+                                            .write_message(Message::Text(format!(
+                                                r#"{{"id":{},
+                                                "type":"message",
+                                                "channel":"{}",
+                                                "text":"pong"}}"#,
+                                                id, channel
+                                            ))).unwrap();
+                                    }
                                 }
-                            }
+                            },
+                            _ => {}
                         },
-                        _ => {},
+                        _ => {}
                     }
                 }
                 Ok(()) // unreachable code, but required for tokio::spawn

@@ -19,6 +19,7 @@ impl SignupRulesManager {
 
 #[derive(Serialize, Deserialize)]
 pub struct Rule {
+    pub name: String,
     pub criterion: Criterion,
     pub action: Action,
 }

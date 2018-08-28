@@ -4,6 +4,7 @@ extern crate futures;
 extern crate hyper;
 extern crate hyper_tls;
 extern crate tokio;
+extern crate ws;
 
 #[macro_use]
 extern crate serde_derive;
@@ -23,7 +24,12 @@ use std::sync::mpsc::channel;
 use std::thread;
 
 fn main() {
-    tokio::run(future::lazy(|| {
+    let (rtm_tx, rtm_rx) = channel::<String>();
+    thread::spawn(move || {
+        slack::rtm::rtm_handler(rtm_rx);
+    });
+
+    tokio::run(future::lazy(move || {
         let (tx, rx) = channel::<event::Event>();
 
         tokio::spawn(eventstream::watch_event_stream(
@@ -32,7 +38,7 @@ fn main() {
             conf::RULES_PATH,
         ));
 
-        tokio::spawn(slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN));
+        slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN, rtm_tx.clone());
 
         eventhandler::handle_events(rx, conf::TOKEN, conf::RULES_PATH);
 

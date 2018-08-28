@@ -16,6 +16,7 @@ mod event;
 mod eventhandler;
 mod eventstream;
 mod signup;
+mod slack;
 
 use std::sync::mpsc::channel;
 use std::thread;

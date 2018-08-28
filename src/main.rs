@@ -33,7 +33,7 @@ fn main() {
             conf::RULES_PATH,
         ));
 
-        slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN);
+        slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN, conf::SLACK_BOT_USER_ID);
 
         eventhandler::handle_events(rx, conf::TOKEN, conf::RULES_PATH);
 

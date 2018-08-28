@@ -1,4 +1,5 @@
 use event::Event;
+use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
@@ -6,6 +7,7 @@ use hyper_tls::HttpsConnector;
 use signup::rules::*;
 use std::sync::mpsc::Receiver;
 use std::thread;
+use tokio;
 
 pub fn handle_events(rx: Receiver<Event>, token: &'static str, rules_path: &'static str) {
     let mut rule_manager =
@@ -44,18 +46,14 @@ pub fn handle_events(rx: Receiver<Event>, token: &'static str, rules_path: &'sta
                             HeaderValue::from_str(&bearer).unwrap(),
                         );
 
-                        thread::spawn(move || {
-                            match client
+                        tokio::spawn(future::lazy(move || {
+                            client
                                 .request(action_req)
                                 .map(|_| println!("Action succesful."))
                                 .map_err(|err| {
                                     println!("Error on mod action: {}", err);
-                                }).wait()
-                            {
-                                Err(_) => println!("Error on mod action .wait()"),
-                                _ => {}
-                            };
-                        });
+                                })
+                        }));
                     }
                 }
             }

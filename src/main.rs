@@ -18,15 +18,22 @@ mod eventstream;
 mod signup;
 mod slack;
 
+use futures::future;
 use std::sync::mpsc::channel;
 use std::thread;
 
 fn main() {
-    let (tx, rx) = channel::<event::Event>();
+    tokio::run(future::lazy(|| {
+        let (tx, rx) = channel::<event::Event>();
 
-    thread::spawn(move || {
+        tokio::spawn(eventstream::watch_event_stream(
+            tx.clone(),
+            conf::TOKEN,
+            conf::RULES_PATH,
+        ));
+
         eventhandler::handle_events(rx, conf::TOKEN, conf::RULES_PATH);
-    });
 
-    eventstream::watch_event_stream(tx.clone(), conf::TOKEN, conf::RULES_PATH);
+        Ok(())
+    }));
 }

@@ -51,21 +51,29 @@ fn handle_signup_command(args: Vec<&&str>, tx: Sender<Event>) -> Result<String, 
         _ => return Err(ParseError {}),
     };
 
-    let action = match args.get(8)? {
-        &&"shadowban" => Action::Shadowban,
-        &&"engine" => Action::EngineMark,
-        &&"boost" => Action::BoostMark,
-        &&"ipban" => Action::IpBan,
-        &&"close" => Action::Close,
-        &&"panic" => Action::EnableChatPanic,
-        &&"notify" => Action::NotifySlack,
-        _ => return Err(ParseError {}),
-    };
+    let actions: Vec<Action> = args
+        .get(8)?
+        .split("+")
+        .map(|one| match one {
+            "shadowban" => Some(Action::Shadowban),
+            "engine" => Some(Action::EngineMark),
+            "boost" => Some(Action::BoostMark),
+            "ipban" => Some(Action::IpBan),
+            "close" => Some(Action::Close),
+            "panic" => Some(Action::EnableChatPanic),
+            "notify" => Some(Action::NotifySlack),
+            _ => None,
+        }).flatten()
+        .collect();
+
+    if actions.len() != args.get(8)?.split("+").count() {
+        return Err(ParseError {});
+    }
 
     let rule = Rule {
         name,
         criterion,
-        action,
+        actions,
     };
 
     tx.send(Event::InternalAddRule { rule }).unwrap();

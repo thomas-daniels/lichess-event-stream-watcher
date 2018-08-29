@@ -28,7 +28,7 @@ impl SignupRulesManager {
 pub struct Rule {
     pub name: String,
     pub criterion: Criterion,
-    pub action: Action,
+    pub actions: Vec<Action>,
 }
 
 #[derive(Serialize, Deserialize)]

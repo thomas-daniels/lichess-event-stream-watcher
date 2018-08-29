@@ -33,26 +33,28 @@ pub fn handle_events(rx: Receiver<Event>, token: &'static str, rules_path: &'sta
                         &user_agent,
                         &finger_print,
                     ) {
-                        let https = HttpsConnector::new(1).unwrap();
-                        let client = Client::builder().build::<_, Body>(https);
-
                         let bearer = "Bearer ".to_owned() + token;
-                        let mut action_req = Request::new(Body::from(""));
-                        *action_req.uri_mut() =
-                            rule.action.api_endpoint(&username).parse().unwrap();
-                        action_req.headers_mut().insert(
-                            hyper::header::AUTHORIZATION,
-                            HeaderValue::from_str(&bearer).unwrap(),
-                        );
 
-                        tokio::spawn(future::lazy(move || {
-                            client
-                                .request(action_req)
-                                .map(|_| println!("Action succesful."))
-                                .map_err(|err| {
-                                    println!("Error on mod action: {}", err);
-                                })
-                        }));
+                        for action in &rule.actions {
+                            let mut action_req = Request::new(Body::from(""));
+                            *action_req.uri_mut() = action.api_endpoint(&username).parse().unwrap();
+                            action_req.headers_mut().insert(
+                                hyper::header::AUTHORIZATION,
+                                HeaderValue::from_str(&bearer).unwrap(),
+                            );
+
+                            let https = HttpsConnector::new(1).unwrap();
+                            let client = Client::builder().build::<_, Body>(https);
+
+                            tokio::spawn(future::lazy(move || {
+                                client
+                                    .request(action_req)
+                                    .map(|_| println!("Action succesful."))
+                                    .map_err(|err| {
+                                        println!("Error on mod action: {}", err);
+                                    })
+                            }));
+                        }
                     }
                 }
             }

@@ -97,6 +97,11 @@ fn handle_signup_command(
 
             Ok(None)
         }
+        &&"list" => {
+            tx.send(Event::InternalListRules).unwrap();
+
+            Ok(None)
+        }
         _ => Err(ParseError {}),
     }
 }

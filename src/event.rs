@@ -16,6 +16,7 @@ pub enum Event {
     },
     InternalShowRule(String),
     InternalRemoveRule(String),
+    InternalListRules,
 }
 
 impl Event {

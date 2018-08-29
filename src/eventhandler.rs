@@ -127,6 +127,11 @@ pub fn handle_events(
                 };
                 slack::web::post_message(slack_message, slack_token, slack_channel);
             }
+            Event::InternalListRules => slack::web::post_message(
+                format!("Current rules: {}", rule_manager.list_names().join(", ")),
+                slack_token,
+                slack_channel,
+            ),
         }
     }
 }

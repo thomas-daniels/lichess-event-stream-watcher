@@ -39,6 +39,10 @@ impl SignupRulesManager {
         let after = self.rules.len();
         before != after
     }
+
+    pub fn list_names(&self) -> Vec<String> {
+        self.rules.iter().map(|r| r.name.clone()).collect()
+    }
 }
 
 #[derive(Serialize, Deserialize)]

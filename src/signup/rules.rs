@@ -28,16 +28,24 @@ impl SignupRulesManager {
             )));
         }
         self.rules.push(rule);
-        let f = OpenOptions::new().write(true).open(&self.rules_path)?;
+        let f = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(&self.rules_path)?;
         serde_json::to_writer(f, &self.rules)?;
         Ok(())
     }
 
-    pub fn remove_rule(&mut self, name: String) -> bool {
+    pub fn remove_rule(&mut self, name: String) -> Result<bool, Box<std::error::Error>> {
         let before = self.rules.len();
         self.rules.retain(|r| !r.name.eq(&name));
         let after = self.rules.len();
-        before != after
+        let f = OpenOptions::new()
+            .write(true)
+            .truncate(true)
+            .open(&self.rules_path)?;
+        serde_json::to_writer(f, &self.rules)?;
+        Ok(before != after)
     }
 
     pub fn list_names(&self) -> Vec<String> {

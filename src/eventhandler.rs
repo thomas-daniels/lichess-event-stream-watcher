@@ -120,10 +120,16 @@ pub fn handle_events(
                 slack::web::post_message(slack_message, slack_token, slack_channel);
             }
             Event::InternalRemoveRule(name) => {
-                let slack_message = if rule_manager.remove_rule(name) {
-                    "Rule removed!".to_owned()
-                } else {
-                    "No such rule found.".to_owned()
+                let slack_message = match rule_manager.remove_rule(name) {
+                    Ok(removed) => if removed {
+                        "Rule removed!".to_owned()
+                    } else {
+                        "No such rule found.".to_owned()
+                    },
+                    Err(err) => {
+                        println!("Error on .remove_rule: {}", err);
+                        format!("Error on removing rule: {}", err)
+                    }
                 };
                 slack::web::post_message(slack_message, slack_token, slack_channel);
             }

@@ -79,7 +79,7 @@ pub fn handle_events(
                             }
                         }
 
-                        if rule.actions.len() > 1 || !rule.actions.get(1).eq(&Some(&Action::NotifySlack))
+                        if rule.actions.len() > 1 || !rule.actions.get(0).eq(&Some(&Action::NotifySlack))
                         {
                             slack::web::post_message(
                                 format!(

@@ -2,7 +2,7 @@ use event::Event;
 use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::Future;
-use hyper::{Body, Client, Request};
+use hyper::{Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use signup::rules::*;
 use slack;
@@ -47,6 +47,7 @@ pub fn handle_events(
                                 Some(endpoint) => {
                                     let mut action_req = Request::new(Body::from(""));
                                     *action_req.uri_mut() = endpoint.parse().unwrap();
+                                    *action_req.method_mut() = Method::POST;
                                     action_req.headers_mut().insert(
                                         hyper::header::AUTHORIZATION,
                                         HeaderValue::from_str(&bearer).unwrap(),
@@ -58,7 +59,7 @@ pub fn handle_events(
                                     tokio::spawn(future::lazy(move || {
                                         client
                                             .request(action_req)
-                                            .map(|_| println!("Action succesful."))
+                                            .map(|res| println!("Action: {}.", res.status()))
                                             .map_err(|err| {
                                                 println!("Error on mod action: {}", err);
                                             })
@@ -79,7 +80,8 @@ pub fn handle_events(
                             }
                         }
 
-                        if rule.actions.len() > 1 || !rule.actions.get(0).eq(&Some(&Action::NotifySlack))
+                        if rule.actions.len() > 1
+                            || !rule.actions.get(0).eq(&Some(&Action::NotifySlack))
                         {
                             slack::web::post_message(
                                 format!(

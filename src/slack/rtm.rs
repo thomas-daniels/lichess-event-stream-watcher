@@ -1,5 +1,6 @@
 use event::Event;
 use futures::future;
+use futures::future::Loop;
 use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
@@ -8,11 +9,12 @@ use serde_json;
 use slack::command::handle_command;
 use slack::event::{RtmRecv, RtmSend};
 use std::sync::mpsc::Sender;
+use std::thread;
 use tungstenite::{connect, Message};
 use url::Url;
 
 pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Event>) {
-    tokio::spawn(future::lazy(move || {
+    tokio::spawn(future::loop_fn((), move |_| {
         let https = HttpsConnector::new(2).unwrap();
         let client = Client::builder().build::<_, Body>(https);
 
@@ -25,11 +27,13 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Ev
             hyper::header::CONTENT_TYPE,
             HeaderValue::from_static("application/x-www-form-urlencoded"),
         );
+        let tx2 = tx.clone();
         client
             .request(req)
             .and_then(|res| res.into_body().concat2())
-            .map_err(|err| println!("Err in connect_to_slack: {}", err))
-            .and_then(move |body| {
+            .map_err(|err| {
+                println!("Err in connect_to_slack: {}", err);
+            }).and_then(move |body| {
                 let resp: serde_json::Value = serde_json::from_slice(&body)
                     .expect("could not deserialize Chunk in connect_to_slack");
                 let ws_url = match &resp["url"] {
@@ -45,10 +49,13 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Ev
                 let mut id = 0;
 
                 loop {
-                    let msg = socket
-                        .read_message()
-                        .expect("Error reading Slack WebSocket message");
-                    match msg {
+                    let msg = socket.read_message();
+
+                    if msg.is_err() {
+                        break;
+                    }
+
+                    match msg.unwrap() {
                         Message::Text(text) => match serde_json::from_str(&text) {
                             Ok(message) => match message {
                                 RtmRecv::Message { text, channel, .. } => {
@@ -56,7 +63,7 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Ev
                                         id += 1;
                                         let text_reply = match handle_command(
                                             text[bot_ping.len()..].to_owned(),
-                                            tx.clone(),
+                                            tx2.clone(),
                                         ) {
                                             Ok(s) => s,
                                             Err(_) => Some("Failed to parse command.".to_owned()),
@@ -83,8 +90,10 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Ev
                         _ => {}
                     }
                 }
-                #[allow(unreachable_code)]
-                Ok(()) // unreachable code, but required for tokio::spawn
+
+                println!("Reconnecting to Slack in 7 seconds...");
+                thread::sleep(std::time::Duration::from_millis(7000));
+                Ok(Loop::Continue(()))
             })
     }));
 }

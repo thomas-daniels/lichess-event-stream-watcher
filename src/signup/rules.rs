@@ -32,6 +32,13 @@ impl SignupRulesManager {
         serde_json::to_writer(f, &self.rules)?;
         Ok(())
     }
+
+    pub fn remove_rule(&mut self, name: String) -> bool {
+        let before = self.rules.len();
+        self.rules.retain(|r| !r.name.eq(&name));
+        let after = self.rules.len();
+        before != after
+    }
 }
 
 #[derive(Serialize, Deserialize)]

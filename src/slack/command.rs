@@ -91,6 +91,12 @@ fn handle_signup_command(
 
             Ok(None)
         }
+        &&"remove" => {
+            tx.send(Event::InternalRemoveRule((***args.get(2)?).to_owned()))
+                .unwrap();
+
+            Ok(None)
+        }
         _ => Err(ParseError {}),
     }
 }

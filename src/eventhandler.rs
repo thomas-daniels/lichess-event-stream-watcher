@@ -119,6 +119,14 @@ pub fn handle_events(
                 };
                 slack::web::post_message(slack_message, slack_token, slack_channel);
             }
+            Event::InternalRemoveRule(name) => {
+                let slack_message = if rule_manager.remove_rule(name) {
+                    "Rule removed!".to_owned()
+                } else {
+                    "No such rule found.".to_owned()
+                };
+                slack::web::post_message(slack_message, slack_token, slack_channel);
+            }
         }
     }
 }

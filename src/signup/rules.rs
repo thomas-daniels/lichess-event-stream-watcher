@@ -1,5 +1,5 @@
 use event::{Email, FingerPrint, Ip, UserAgent, Username};
-use std::fs::File;
+use std::fs::{File, OpenOptions};
 
 pub struct SignupRulesManager {
     pub rules: Vec<Rule>,
@@ -18,7 +18,7 @@ impl SignupRulesManager {
 
     pub fn add_rule(&mut self, rule: Rule) -> Result<(), Box<std::error::Error>> {
         self.rules.push(rule);
-        let f = File::open(&self.rules_path)?;
+        let f = OpenOptions::new().write(true).open(&self.rules_path)?;
         println!("do I get here?");
         serde_json::to_writer(f, &self.rules)?;
         Ok(())

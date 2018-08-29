@@ -4,7 +4,7 @@ use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use serde_json;
-use slack::event::Event;
+use slack::event::{RtmRecv, RtmSend};
 use tungstenite::{connect, Message};
 use url::Url;
 
@@ -49,18 +49,19 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str) {
                     match msg {
                         Message::Text(text) => match serde_json::from_str(&text) {
                             Ok(message) => match message {
-                                Event::Message { text, channel, .. } => {
+                                RtmRecv::Message { text, channel, .. } => {
                                     if text.starts_with(&bot_ping) {
                                         println!("ok");
                                         id += 1;
                                         socket
-                                            .write_message(Message::Text(format!(
-                                                r#"{{"id":{},
-                                                "type":"message",
-                                                "channel":"{}",
-                                                "text":"pong"}}"#,
-                                                id, channel
-                                            ))).unwrap();
+                                            .write_message(Message::Text(
+                                                serde_json::to_string(&RtmSend {
+                                                    id: id,
+                                                    type_: "message".to_owned(),
+                                                    channel: channel,
+                                                    text: "pong".to_owned(),
+                                                }).unwrap(),
+                                            )).unwrap();
                                     }
                                 }
                             },

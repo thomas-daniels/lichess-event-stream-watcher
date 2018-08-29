@@ -1,6 +1,6 @@
 #[derive(Deserialize)]
 #[serde(tag = "type")]
-pub enum Event {
+pub enum RtmRecv {
     #[serde(rename = "message")]
     Message {
         user: String,
@@ -11,4 +11,13 @@ pub enum Event {
         event_ts: String,
         ts: String,
     },
+}
+
+#[derive(Serialize)]
+pub struct RtmSend {
+    pub id: i32,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub channel: String,
+    pub text: String,
 }

@@ -83,7 +83,7 @@ fn handle_signup_command(
 
             tx.send(Event::InternalAddRule { rule }).unwrap();
 
-            Ok(Some("Rule added!".to_owned()))
+            Ok(None)
         }
         &&"show" => {
             tx.send(Event::InternalShowRule((***args.get(2)?).to_owned()))

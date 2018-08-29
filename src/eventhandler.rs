@@ -68,8 +68,11 @@ pub fn handle_events(
             Event::InternalAddRule { rule } => match rule_manager.add_rule(rule) {
                 Err(err) => {
                     println!("Error on .add_rule: {}", err);
+                    slack::web::post_message(format!("Error on adding rule: {}", err), slack_token, slack_channel);
                 }
-                _ => {}
+                Ok(_) => {
+                    slack::web::post_message("Rule added!".to_owned(), slack_token, slack_channel);
+                }
             },
             Event::InternalShowRule(name) => {
                 let slack_message = match rule_manager.find_rule(name) {

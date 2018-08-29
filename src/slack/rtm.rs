@@ -1,14 +1,17 @@
+use event::Event;
 use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use serde_json;
+use slack::command::handle_command;
 use slack::event::{RtmRecv, RtmSend};
+use std::sync::mpsc::Sender;
 use tungstenite::{connect, Message};
 use url::Url;
 
-pub fn connect_to_slack(token: &'static str, bot_id: &'static str) {
+pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Event>) {
     tokio::spawn(future::lazy(move || {
         let https = HttpsConnector::new(2).unwrap();
         let client = Client::builder().build::<_, Body>(https);
@@ -51,15 +54,21 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str) {
                             Ok(message) => match message {
                                 RtmRecv::Message { text, channel, .. } => {
                                     if text.starts_with(&bot_ping) {
-                                        println!("ok");
                                         id += 1;
+                                        let text_reply = match handle_command(
+                                            text[bot_ping.len()..].to_owned(),
+                                            tx.clone(),
+                                        ) {
+                                            Ok(s) => s,
+                                            Err(_) => "Failed to parse command.".to_owned(),
+                                        };
                                         socket
                                             .write_message(Message::Text(
                                                 serde_json::to_string(&RtmSend {
                                                     id: id,
                                                     type_: "message".to_owned(),
                                                     channel: channel,
-                                                    text: "pong".to_owned(),
+                                                    text: text_reply,
                                                 }).unwrap(),
                                             )).unwrap();
                                     }

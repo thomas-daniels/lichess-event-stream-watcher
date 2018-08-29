@@ -1,4 +1,5 @@
 #![feature(extern_prelude)]
+#![feature(try_trait)]
 
 extern crate futures;
 extern crate hyper;
@@ -33,7 +34,7 @@ fn main() {
             conf::RULES_PATH,
         ));
 
-        slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN, conf::SLACK_BOT_USER_ID);
+        slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN, conf::SLACK_BOT_USER_ID, tx.clone());
 
         eventhandler::handle_events(rx, conf::TOKEN, conf::RULES_PATH);
 

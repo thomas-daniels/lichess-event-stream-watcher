@@ -60,17 +60,22 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Ev
                                             tx.clone(),
                                         ) {
                                             Ok(s) => s,
-                                            Err(_) => "Failed to parse command.".to_owned(),
+                                            Err(_) => Some("Failed to parse command.".to_owned()),
                                         };
-                                        socket
-                                            .write_message(Message::Text(
-                                                serde_json::to_string(&RtmSend {
-                                                    id: id,
-                                                    type_: "message".to_owned(),
-                                                    channel: channel,
-                                                    text: text_reply,
-                                                }).unwrap(),
-                                            )).unwrap();
+                                        match text_reply {
+                                            Some(reply) => {
+                                                socket
+                                                    .write_message(Message::Text(
+                                                        serde_json::to_string(&RtmSend {
+                                                            id: id,
+                                                            type_: "message".to_owned(),
+                                                            channel: channel,
+                                                            text: reply,
+                                                        }).unwrap(),
+                                                    )).unwrap();
+                                            }
+                                            _ => {}
+                                        }
                                     }
                                 }
                             },

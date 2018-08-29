@@ -5,10 +5,17 @@ use hyper::rt::Future;
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use signup::rules::*;
+use slack;
 use std::sync::mpsc::Receiver;
 use tokio;
 
-pub fn handle_events(rx: Receiver<Event>, token: &'static str, rules_path: &'static str) {
+pub fn handle_events(
+    rx: Receiver<Event>,
+    token: &'static str,
+    rules_path: &'static str,
+    slack_token: &'static str,
+    slack_channel: &'static str,
+) {
     let mut rule_manager =
         SignupRulesManager::new(rules_path.to_string()).expect("could not load rules");
     println!("Currently {} rules.", rule_manager.rules.len());
@@ -64,6 +71,17 @@ pub fn handle_events(rx: Receiver<Event>, token: &'static str, rules_path: &'sta
                 }
                 _ => {}
             },
+            Event::InternalShowRule(name) => {
+                let slack_message = match rule_manager.find_rule(name) {
+                    None => "No such rule found.".to_owned(),
+                    Some(rule) => format!(
+                        "Criterion: {}.\nActions: {:?}",
+                        rule.criterion.friendly(),
+                        rule.actions
+                    ),
+                };
+                slack::web::post_message(slack_message, slack_token, slack_channel);
+            }
         }
     }
 }

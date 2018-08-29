@@ -12,6 +12,7 @@ extern crate url;
 extern crate serde_derive;
 
 extern crate serde;
+#[macro_use]
 extern crate serde_json;
 
 mod conf;
@@ -36,7 +37,13 @@ fn main() {
 
         slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN, conf::SLACK_BOT_USER_ID, tx.clone());
 
-        eventhandler::handle_events(rx, conf::TOKEN, conf::RULES_PATH);
+        eventhandler::handle_events(
+            rx,
+            conf::TOKEN,
+            conf::RULES_PATH,
+            conf::SLACK_BOT_TOKEN,
+            conf::SLACK_CHANNEL,
+        );
 
         Ok(())
     }));

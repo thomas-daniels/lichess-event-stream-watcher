@@ -16,8 +16,12 @@ impl SignupRulesManager {
         })
     }
 
+    pub fn find_rule(&self, name: String) -> Option<&Rule> {
+        self.rules.iter().find(|r| r.name.eq(&name))
+    }
+
     pub fn add_rule(&mut self, rule: Rule) -> Result<(), Box<std::error::Error>> {
-        if self.rules.iter().find(|r| r.name.eq(&rule.name)).is_some() {
+        if self.find_rule(rule.name.clone()).is_some() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
                 "Already a rule found with that name.",
@@ -66,9 +70,23 @@ impl Criterion {
             Criterion::UseragentLengthLte(len) => user_agent.0.len() <= *len,
         }
     }
+
+    pub fn friendly(&self) -> String {
+        match self {
+            Criterion::IpMatch(exact) => format!("IP equals `{}`", exact.0),
+            Criterion::PrintMatch(exact) => format!("Fingerprint hash equals `{}`", exact.0),
+            Criterion::EmailContains(s) => format!("Email address contains `{}`", s),
+            Criterion::UsernameContains(s) => {
+                format!("Username contains (case-insensitive) `{}`", s)
+            }
+            Criterion::UseragentLengthLte(l) => {
+                format!("User agent length is less than or equal to {}", l)
+            }
+        }
+    }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Action {
     Shadowban,
     EngineMark,

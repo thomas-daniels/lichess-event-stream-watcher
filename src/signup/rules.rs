@@ -66,7 +66,9 @@ impl Criterion {
                 Some(fp) => exact.eq(fp),
             },
             Criterion::EmailContains(part) => email.0.to_uppercase().contains(&part.to_uppercase()),
-            Criterion::UsernameContains(part) => username.0.to_uppercase().contains(&part.to_uppercase()),
+            Criterion::UsernameContains(part) => {
+                username.0.to_uppercase().contains(&part.to_uppercase())
+            }
             Criterion::UseragentLengthLte(len) => user_agent.0.len() <= *len,
         }
     }
@@ -86,7 +88,7 @@ impl Criterion {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub enum Action {
     Shadowban,
     EngineMark,
@@ -98,15 +100,21 @@ pub enum Action {
 }
 
 impl Action {
-    pub fn api_endpoint(&self, username: &Username) -> String {
+    pub fn api_endpoint(&self, username: &Username) -> Option<String> {
         match self {
-            Action::Shadowban => format!("https://lichess.org/mod/{}/troll/true", username.0),
-            Action::EngineMark => format!("https://lichess.org/mod/{}/engine/true", username.0),
-            Action::BoostMark => format!("https://lichess.org/mod/{}/booster/true", username.0),
-            Action::IpBan => format!("https://lichess.org/mod/{}/ban/true", username.0),
-            Action::Close => format!("https://lichess.org/mod/{}/close", username.0),
-            Action::EnableChatPanic => String::from("https://lichess.org/mod/chat-panic"),
-            Action::NotifySlack => format!("https://lichess.org/mod/{}/notify-slack", username.0),
+            Action::Shadowban => Some(format!("https://lichess.org/mod/{}/troll/true", username.0)),
+            Action::EngineMark => Some(format!(
+                "https://lichess.org/mod/{}/engine/true",
+                username.0
+            )),
+            Action::BoostMark => Some(format!(
+                "https://lichess.org/mod/{}/booster/true",
+                username.0
+            )),
+            Action::IpBan => Some(format!("https://lichess.org/mod/{}/ban/true", username.0)),
+            Action::Close => Some(format!("https://lichess.org/mod/{}/close", username.0)),
+            Action::EnableChatPanic => Some(String::from("https://lichess.org/mod/chat-panic")),
+            Action::NotifySlack => None,
         }
     }
 }

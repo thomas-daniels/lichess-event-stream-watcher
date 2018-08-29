@@ -43,24 +43,53 @@ pub fn handle_events(
                         let bearer = "Bearer ".to_owned() + token;
 
                         for action in &rule.actions {
-                            let mut action_req = Request::new(Body::from(""));
-                            *action_req.uri_mut() = action.api_endpoint(&username).parse().unwrap();
-                            action_req.headers_mut().insert(
-                                hyper::header::AUTHORIZATION,
-                                HeaderValue::from_str(&bearer).unwrap(),
+                            match action.api_endpoint(&username) {
+                                Some(endpoint) => {
+                                    let mut action_req = Request::new(Body::from(""));
+                                    *action_req.uri_mut() = endpoint.parse().unwrap();
+                                    action_req.headers_mut().insert(
+                                        hyper::header::AUTHORIZATION,
+                                        HeaderValue::from_str(&bearer).unwrap(),
+                                    );
+
+                                    let https = HttpsConnector::new(1).unwrap();
+                                    let client = Client::builder().build::<_, Body>(https);
+
+                                    tokio::spawn(future::lazy(move || {
+                                        client
+                                            .request(action_req)
+                                            .map(|_| println!("Action succesful."))
+                                            .map_err(|err| {
+                                                println!("Error on mod action: {}", err);
+                                            })
+                                    }));
+                                }
+                                None => {
+                                    if action.eq(&Action::NotifySlack) {
+                                        slack::web::post_message(
+                                            format!(
+                                                "Rule {} match: https://lichess.org/@/{}",
+                                                &rule.name, &username.0
+                                            ),
+                                            slack_token,
+                                            slack_channel,
+                                        );
+                                    }
+                                }
+                            }
+                        }
+
+                        if rule.actions.len() > 1 || !rule.actions.get(1).eq(&Some(&Action::NotifySlack))
+                        {
+                            slack::web::post_message(
+                                format!(
+                                    "Rule {} match: automatic actions \
+                                     have been taken on https://lichess.org/@/{}",
+                                    &rule.name, &username.0
+                                ),
+                                slack_token,
+                                slack_channel,
                             );
-
-                            let https = HttpsConnector::new(1).unwrap();
-                            let client = Client::builder().build::<_, Body>(https);
-
-                            tokio::spawn(future::lazy(move || {
-                                client
-                                    .request(action_req)
-                                    .map(|_| println!("Action succesful."))
-                                    .map_err(|err| {
-                                        println!("Error on mod action: {}", err);
-                                    })
-                            }));
                         }
                     }
                 }
@@ -68,7 +97,11 @@ pub fn handle_events(
             Event::InternalAddRule { rule } => match rule_manager.add_rule(rule) {
                 Err(err) => {
                     println!("Error on .add_rule: {}", err);
-                    slack::web::post_message(format!("Error on adding rule: {}", err), slack_token, slack_channel);
+                    slack::web::post_message(
+                        format!("Error on adding rule: {}", err),
+                        slack_token,
+                        slack_channel,
+                    );
                 }
                 Ok(_) => {
                     slack::web::post_message("Rule added!".to_owned(), slack_token, slack_channel);

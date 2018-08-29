@@ -19,7 +19,6 @@ impl SignupRulesManager {
     pub fn add_rule(&mut self, rule: Rule) -> Result<(), Box<std::error::Error>> {
         self.rules.push(rule);
         let f = OpenOptions::new().write(true).open(&self.rules_path)?;
-        println!("do I get here?");
         serde_json::to_writer(f, &self.rules)?;
         Ok(())
     }

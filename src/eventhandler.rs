@@ -31,7 +31,6 @@ pub fn handle_events(
                 user_agent,
                 finger_print,
             } => {
-                println!("{}", username.0);
                 for rule in &rule_manager.rules {
                     if rule.criterion.take_action(
                         &username,

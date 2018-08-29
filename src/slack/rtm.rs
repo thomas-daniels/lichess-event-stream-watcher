@@ -48,7 +48,6 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Ev
                     let msg = socket
                         .read_message()
                         .expect("Error reading Slack WebSocket message");
-                    println!("Received msg: {}", &msg);
                     match msg {
                         Message::Text(text) => match serde_json::from_str(&text) {
                             Ok(message) => match message {

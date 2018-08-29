@@ -23,8 +23,6 @@ pub fn post_message(text: String, token: &'static str, channel: &'static str) {
             .unwrap();
         *req.method_mut() = Method::POST;
 
-        println!("{}", req.method());
-
         req.headers_mut().insert(
             hyper::header::CONTENT_TYPE,
             HeaderValue::from_static("application/json"),

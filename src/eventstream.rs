@@ -1,5 +1,4 @@
 use event::Event;
-use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
@@ -9,7 +8,6 @@ use std::sync::mpsc::Sender;
 pub fn watch_event_stream(
     tx: Sender<Event>,
     token: &'static str,
-    rules_path: &'static str,
 ) -> impl Future<Item = (), Error = ()> {
     let https = HttpsConnector::new(2).unwrap();
     let client = Client::builder().build::<_, Body>(https);

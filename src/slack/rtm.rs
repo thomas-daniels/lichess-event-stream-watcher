@@ -84,6 +84,7 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Ev
                         _ => {}
                     }
                 }
+                #[allow(unreachable_code)]
                 Ok(()) // unreachable code, but required for tokio::spawn
             })
     }));

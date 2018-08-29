@@ -1,6 +1,6 @@
 use futures::future;
 use hyper::header::HeaderValue;
-use hyper::rt::{Future, Stream};
+use hyper::rt::Future;
 use hyper::{Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
 use tokio;

@@ -17,6 +17,12 @@ impl SignupRulesManager {
     }
 
     pub fn add_rule(&mut self, rule: Rule) -> Result<(), Box<std::error::Error>> {
+        if self.rules.iter().find(|r| r.name.eq(&rule.name)).is_some() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Already a rule found with that name.",
+            )));
+        }
         self.rules.push(rule);
         let f = OpenOptions::new().write(true).open(&self.rules_path)?;
         serde_json::to_writer(f, &self.rules)?;

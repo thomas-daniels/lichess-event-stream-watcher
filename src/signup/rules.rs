@@ -65,8 +65,8 @@ impl Criterion {
                 None => false,
                 Some(fp) => exact.eq(fp),
             },
-            Criterion::EmailContains(part) => email.0.contains(part),
-            Criterion::UsernameContains(part) => username.0.contains(part),
+            Criterion::EmailContains(part) => email.0.to_uppercase().contains(&part.to_uppercase()),
+            Criterion::UsernameContains(part) => username.0.to_uppercase().contains(&part.to_uppercase()),
             Criterion::UseragentLengthLte(len) => user_agent.0.len() <= *len,
         }
     }

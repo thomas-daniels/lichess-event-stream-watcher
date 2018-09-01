@@ -4,9 +4,12 @@ use hyper::header::HeaderValue;
 use hyper::rt::Future;
 use hyper::{Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
+use rand::{thread_rng, Rng};
 use signup::rules::*;
 use slack;
 use std::sync::mpsc::Receiver;
+use std::thread;
+use std::time;
 use tokio;
 
 pub fn handle_events(
@@ -56,7 +59,17 @@ pub fn handle_events(
                                     let https = HttpsConnector::new(1).unwrap();
                                     let client = Client::builder().build::<_, Body>(https);
 
+                                    let delay = action.eq(&Action::EngineMark)
+                                        || action.eq(&Action::BoostMark)
+                                        || action.eq(&Action::IpBan)
+                                        || action.eq(&Action::Close);
+
                                     tokio::spawn(future::lazy(move || {
+                                        if delay {
+                                            let ms = thread_rng().gen_range(30, 180) * 1000;
+                                            thread::sleep(time::Duration::from_millis(ms));
+                                        }
+
                                         client
                                             .request(action_req)
                                             .map(|res| println!("Action: {}.", res.status()))
@@ -86,7 +99,8 @@ pub fn handle_events(
                             slack::web::post_message(
                                 format!(
                                     "Rule {} match: automatic actions \
-                                     have been taken on https://lichess.org/@/{}",
+                                     have been taken (or will be taken after a short delay) \
+                                     on https://lichess.org/@/{}",
                                     &rule.name, &username.0
                                 ),
                                 slack_token,

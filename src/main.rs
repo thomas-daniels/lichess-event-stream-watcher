@@ -4,6 +4,7 @@
 extern crate futures;
 extern crate hyper;
 extern crate hyper_tls;
+extern crate rand;
 extern crate tokio;
 extern crate tungstenite;
 extern crate url;

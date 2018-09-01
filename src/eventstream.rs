@@ -28,12 +28,18 @@ pub fn watch_event_stream(
             res.into_body().for_each(move |chunk| {
                 let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec())
                     .unwrap_or("invalid chunk bytes".to_string());
-                match Event::from_json(string_chunk) {
-                    Ok(event) => tx.send(event).unwrap(),
-                    _ => {
-                        println!("deserialize error for {}", string_chunk);
+                let lines: Vec<&str> = string_chunk.split("\n").collect();
+                for line in &lines {
+                    let trimmed = line.trim();
+                    if !trimmed.eq("") {
+                        match Event::from_json(line) {
+                            Ok(event) => tx.send(event).unwrap(),
+                            _ => {
+                                println!("deserialize error for {}", line);
+                            }
+                        };
                     }
-                };
+                }
                 Ok(())
             })
         }).map_err(|err| {

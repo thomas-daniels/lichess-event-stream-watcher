@@ -15,6 +15,7 @@ pub fn handle_events(
     rules_path: &'static str,
     slack_token: &'static str,
     slack_channel: &'static str,
+    slack_notify_channel: &'static str,
 ) {
     let mut rule_manager =
         SignupRulesManager::new(rules_path.to_string()).expect("could not load rules");
@@ -72,7 +73,7 @@ pub fn handle_events(
                                                 &rule.name, &username.0
                                             ),
                                             slack_token,
-                                            slack_channel,
+                                            slack_notify_channel,
                                         );
                                     }
                                 }

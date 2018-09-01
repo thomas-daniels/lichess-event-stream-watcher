@@ -39,6 +39,7 @@ fn main() {
             conf::RULES_PATH,
             conf::SLACK_BOT_TOKEN,
             conf::SLACK_CHANNEL,
+            conf::SLACK_NOTIFY_CHANNEL,
         );
 
         Ok(())

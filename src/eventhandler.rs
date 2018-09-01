@@ -35,6 +35,8 @@ pub fn handle_events(
                 user_agent,
                 finger_print,
             } => {
+                let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;
+
                 for rule in &rule_manager.rules {
                     if rule.criterion.take_action(
                         &username,
@@ -44,8 +46,6 @@ pub fn handle_events(
                         &finger_print,
                     ) {
                         let bearer = "Bearer ".to_owned() + token;
-
-                        let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;
 
                         for action in &rule.actions {
                             match action.api_endpoint(&username) {

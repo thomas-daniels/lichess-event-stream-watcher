@@ -45,6 +45,8 @@ pub fn handle_events(
                     ) {
                         let bearer = "Bearer ".to_owned() + token;
 
+                        let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;
+
                         for action in &rule.actions {
                             match action.api_endpoint(&username) {
                                 Some(endpoint) => {
@@ -66,8 +68,9 @@ pub fn handle_events(
 
                                     tokio::spawn(future::lazy(move || {
                                         if delay {
-                                            let ms = thread_rng().gen_range(30, 180) * 1000;
-                                            thread::sleep(time::Duration::from_millis(ms));
+                                            thread::sleep(time::Duration::from_millis(
+                                                delay_ms_if_needed,
+                                            ));
                                         }
 
                                         client

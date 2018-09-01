@@ -31,7 +31,12 @@ fn main() {
 
         tokio::spawn(eventstream::watch_event_stream(tx.clone(), conf::TOKEN));
 
-        slack::rtm::connect_to_slack(conf::SLACK_BOT_TOKEN, conf::SLACK_BOT_USER_ID, tx.clone());
+        slack::rtm::connect_to_slack(
+            conf::SLACK_BOT_TOKEN,
+            conf::SLACK_BOT_USER_ID,
+            conf::SLACK_CHANNEL,
+            tx.clone(),
+        );
 
         eventhandler::handle_events(
             rx,

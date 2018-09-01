@@ -13,7 +13,12 @@ use std::thread;
 use tungstenite::{connect, Message};
 use url::Url;
 
-pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Event>) {
+pub fn connect_to_slack(
+    token: &'static str,
+    bot_id: &'static str,
+    listen_channel: &'static str,
+    tx: Sender<Event>,
+) {
     tokio::spawn(future::loop_fn((), move |_| {
         let https = HttpsConnector::new(2).unwrap();
         let client = Client::builder().build::<_, Body>(https);
@@ -59,7 +64,7 @@ pub fn connect_to_slack(token: &'static str, bot_id: &'static str, tx: Sender<Ev
                         Message::Text(text) => match serde_json::from_str(&text) {
                             Ok(message) => match message {
                                 RtmRecv::Message { text, channel, .. } => {
-                                    if text.starts_with(&bot_ping) {
+                                    if text.starts_with(&bot_ping) && channel.eq(listen_channel) {
                                         id += 1;
                                         let text_reply = match handle_command(
                                             text[bot_ping.len()..].to_owned(),

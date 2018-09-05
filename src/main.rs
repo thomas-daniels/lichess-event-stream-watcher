@@ -30,7 +30,7 @@ fn main() {
     tokio::run(future::lazy(move || {
         let (tx, rx) = channel::<event::Event>();
 
-        tokio::spawn(eventstream::watch_event_stream(tx.clone(), conf::TOKEN));
+        eventstream::watch_event_stream(tx.clone(), conf::TOKEN);
 
         slack::rtm::connect_to_slack(
             conf::SLACK_BOT_TOKEN,

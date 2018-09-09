@@ -44,6 +44,7 @@ pub fn watch_event_stream(tx: Sender<Event>, token: &'static str) {
                             let now = SystemTime::now();
                             let dt: DateTime<Utc> = now.into();
                             println!("UTC {}: 20 done", dt.format("%d/%m/%Y %T"));
+                            count = 0;
                         }
 
                         let trimmed = line.trim();

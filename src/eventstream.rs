@@ -1,3 +1,5 @@
+use chrono::offset::Utc;
+use chrono::DateTime;
 use event::Event;
 use futures::future;
 use futures::future::Loop;
@@ -7,6 +9,7 @@ use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
 use std::sync::mpsc::Sender;
 use std::thread;
+use std::time::SystemTime;
 
 pub fn watch_event_stream(tx: Sender<Event>, token: &'static str) {
     tokio::spawn(future::loop_fn((), move |_| {
@@ -25,14 +28,24 @@ pub fn watch_event_stream(tx: Sender<Event>, token: &'static str) {
 
         let tx2 = tx.clone();
 
+        let mut count = 0;
+
         client
             .request(req)
             .and_then(move |res| {
+                println!("Event stream connection initialized.");
                 res.into_body().for_each(move |chunk| {
                     let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec())
                         .unwrap_or("invalid chunk bytes".to_string());
                     let lines: Vec<&str> = string_chunk.split("\n").collect();
                     for line in &lines {
+                        count = count + 1;
+                        if count % 20 == 0 {
+                            let now = SystemTime::now();
+                            let dt: DateTime<Utc> = now.into();
+                            println!("UTC {}: 20 done", dt.format("%d/%m/%Y %T"));
+                        }
+
                         let trimmed = line.trim();
                         if !trimmed.eq("") {
                             match Event::from_json(line) {

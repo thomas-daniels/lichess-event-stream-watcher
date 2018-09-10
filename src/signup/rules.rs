@@ -66,6 +66,11 @@ impl SignupRulesManager {
                 std::io::ErrorKind::Other,
                 "Failed to find rule for index.",
             ))?;
+
+            if rule.most_recent_caught.contains(&user.0) {
+                return Ok(());
+            }
+
             rule.match_count += 1;
             let mrc = &mut rule.most_recent_caught;
             let Username(user) = user;

@@ -79,6 +79,8 @@ fn handle_signup_command(
                 name,
                 criterion,
                 actions,
+                match_count: 0,
+                most_recent_caught: vec![],
             };
 
             tx.send(Event::InternalAddRule { rule }).unwrap();

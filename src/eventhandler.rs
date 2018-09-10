@@ -37,6 +37,8 @@ pub fn handle_events(
             } => {
                 let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;
 
+                let mut matched_rules: Vec<String> = vec![];
+
                 for rule in &rule_manager.rules {
                     if rule.criterion.take_action(
                         &username,
@@ -45,6 +47,8 @@ pub fn handle_events(
                         &user_agent,
                         &finger_print,
                     ) {
+                        matched_rules.push(rule.name.clone());
+
                         let bearer = "Bearer ".to_owned() + token;
 
                         for action in &rule.actions {
@@ -101,16 +105,38 @@ pub fn handle_events(
                         {
                             slack::web::post_message(
                                 format!(
-                                    "Rule {} match: automatic actions \
-                                     have been taken (or will be taken after a short delay) \
-                                     on https://lichess.org/@/{}",
-                                    &rule.name, &username.0
+                                    "Rule {} match: \
+                                     {} on <https://lichess.org/@/{}?mod|{}>. \
+                                     {} previous matches. \
+                                     Recent matches: {}",
+                                    &rule.name,
+                                    &rule.criterion.friendly(),
+                                    &username.0,
+                                    &username.0,
+                                    &rule.match_count,
+                                    if rule.most_recent_caught.len() == 0 {
+                                        "None".to_string()
+                                    } else {
+                                        rule.most_recent_caught
+                                            .iter()
+                                            .map(|u| {
+                                                format!("<https://lichess.org/@/{}?mod|{}", &u, &u)
+                                            }).collect::<Vec<String>>()
+                                            .join(", ")
+                                    }
                                 ),
                                 slack_token,
                                 slack_channel,
                             );
                         }
                     }
+                }
+
+                for name in matched_rules {
+                    match rule_manager.caught(name, &username) {
+                        Ok(_) => {}
+                        Err(e) => println!("Error in .caught: {}", e),
+                    };
                 }
             }
             Event::InternalAddRule { rule } => match rule_manager.add_rule(rule) {

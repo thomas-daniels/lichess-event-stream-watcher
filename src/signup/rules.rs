@@ -20,14 +20,7 @@ impl SignupRulesManager {
         self.rules.iter().find(|r| r.name.eq(&name))
     }
 
-    pub fn add_rule(&mut self, rule: Rule) -> Result<(), Box<std::error::Error>> {
-        if self.find_rule(rule.name.clone()).is_some() {
-            return Err(Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                "Already a rule found with that name.",
-            )));
-        }
-        self.rules.push(rule);
+    fn save(&self) -> Result<(), Box<std::error::Error>> {
         let f = OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -36,20 +29,52 @@ impl SignupRulesManager {
         Ok(())
     }
 
+    pub fn add_rule(&mut self, rule: Rule) -> Result<(), Box<std::error::Error>> {
+        if self.find_rule(rule.name.clone()).is_some() {
+            return Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Already a rule found with that name.",
+            )));
+        }
+        self.rules.push(rule);
+        self.save()
+    }
+
     pub fn remove_rule(&mut self, name: String) -> Result<bool, Box<std::error::Error>> {
         let before = self.rules.len();
         self.rules.retain(|r| !r.name.eq(&name));
         let after = self.rules.len();
-        let f = OpenOptions::new()
-            .write(true)
-            .truncate(true)
-            .open(&self.rules_path)?;
-        serde_json::to_writer(f, &self.rules)?;
+        self.save()?;
         Ok(before != after)
     }
 
     pub fn list_names(&self) -> Vec<String> {
         self.rules.iter().map(|r| r.name.clone()).collect()
+    }
+
+    pub fn caught(&mut self, name: String, user: &Username) -> Result<(), Box<std::error::Error>> {
+        let index = self
+            .rules
+            .iter()
+            .position(|r| r.name.eq(&name))
+            .ok_or(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Index could not be found.",
+            ))?;
+        {
+            let rule = self.rules.get_mut(index).ok_or(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Failed to find rule for index.",
+            ))?;
+            rule.match_count += 1;
+            let mrc = &mut rule.most_recent_caught;
+            let Username(user) = user;
+            mrc.push(user.to_owned());
+            if mrc.len() > 3 {
+                mrc.remove(0);
+            }
+        }
+        self.save()
     }
 }
 
@@ -58,6 +83,17 @@ pub struct Rule {
     pub name: String,
     pub criterion: Criterion,
     pub actions: Vec<Action>,
+    #[serde(default = "default_match_count")]
+    pub match_count: usize,
+    #[serde(default = "default_mrc")]
+    pub most_recent_caught: Vec<String>,
+}
+
+fn default_match_count() -> usize {
+    0
+}
+fn default_mrc() -> Vec<String> {
+    vec![]
 }
 
 #[derive(Serialize, Deserialize)]

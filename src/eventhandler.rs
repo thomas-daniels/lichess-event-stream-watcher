@@ -120,7 +120,7 @@ pub fn handle_events(
                                         rule.most_recent_caught
                                             .iter()
                                             .map(|u| {
-                                                format!("<https://lichess.org/@/{}?mod|{}", &u, &u)
+                                                format!("<https://lichess.org/@/{}?mod|{}>", &u, &u)
                                             }).collect::<Vec<String>>()
                                             .join(", ")
                                     }

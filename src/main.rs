@@ -23,6 +23,7 @@ mod eventhandler;
 mod eventstream;
 mod signup;
 mod slack;
+mod status;
 
 use futures::future;
 use std::sync::mpsc::channel;
@@ -30,8 +31,9 @@ use std::sync::mpsc::channel;
 fn main() {
     tokio::run(future::lazy(move || {
         let (tx, rx) = channel::<event::Event>();
+        let (status_tx, status_rx) = channel::<status::StatusPing>();
 
-        eventstream::watch_event_stream(tx.clone(), conf::TOKEN);
+        eventstream::watch_event_stream(tx.clone(), conf::TOKEN, status_tx.clone());
 
         slack::rtm::connect_to_slack(
             conf::SLACK_BOT_TOKEN,
@@ -48,6 +50,9 @@ fn main() {
             conf::SLACK_CHANNEL,
             conf::SLACK_NOTIFY_CHANNEL,
         );
+
+        status::status_loop(status_rx, tx.clone(), conf::TOKEN, status_tx.clone());
+        status::periodically_ensure_alive_connection(status_tx.clone());
 
         Ok(())
     }));

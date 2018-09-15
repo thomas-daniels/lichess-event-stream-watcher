@@ -7,11 +7,12 @@ use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_tls::HttpsConnector;
+use status::StatusPing;
 use std::sync::mpsc::Sender;
 use std::thread;
 use std::time::SystemTime;
 
-pub fn watch_event_stream(tx: Sender<Event>, token: &'static str) {
+pub fn watch_event_stream(tx: Sender<Event>, token: &'static str, status_tx: Sender<StatusPing>) {
     tokio::spawn(future::loop_fn((), move |_| {
         let https = HttpsConnector::new(2).unwrap();
         let client = Client::builder().build::<_, Body>(https);
@@ -27,6 +28,7 @@ pub fn watch_event_stream(tx: Sender<Event>, token: &'static str) {
         );
 
         let tx2 = tx.clone();
+        let status_tx2 = status_tx.clone();
 
         let mut count = 0;
 
@@ -35,6 +37,8 @@ pub fn watch_event_stream(tx: Sender<Event>, token: &'static str) {
             .and_then(move |res| {
                 println!("Event stream connection initialized.");
                 res.into_body().for_each(move |chunk| {
+                    status_tx2.send(StatusPing::StreamEventReceived).unwrap();
+
                     let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec())
                         .unwrap_or("invalid chunk bytes".to_string());
                     let lines: Vec<&str> = string_chunk.split("\n").collect();

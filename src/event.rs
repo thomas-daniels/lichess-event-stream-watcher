@@ -17,6 +17,8 @@ pub enum Event {
     InternalShowRule(String),
     InternalRemoveRule(String),
     InternalListRules,
+    InternalStreamEventReceived,
+    InternalSlackStatusCommand,
 }
 
 impl Event {

@@ -11,6 +11,7 @@ use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time;
 use tokio;
+use chrono::prelude::*;
 
 pub fn handle_events(
     rx: Receiver<Event>,
@@ -23,6 +24,8 @@ pub fn handle_events(
     let mut rule_manager =
         SignupRulesManager::new(rules_path.to_string()).expect("could not load rules");
     println!("Currently {} rules.", rule_manager.rules.len());
+
+    let mut latest_event_utc: DateTime<Utc> = Utc::now();
 
     loop {
         let event = rx.recv().unwrap();
@@ -182,6 +185,12 @@ pub fn handle_events(
                 slack_token,
                 slack_channel,
             ),
+            Event::InternalStreamEventReceived => latest_event_utc = Utc::now(),
+            Event::InternalSlackStatusCommand => slack::web::post_message(
+                format!("I am alive! Latest event: (UTC) {}", latest_event_utc.format("%d/%m/%Y %T")),
+                slack_token,
+                slack_channel
+            )
         }
     }
 }

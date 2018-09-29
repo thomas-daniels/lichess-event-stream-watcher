@@ -6,10 +6,15 @@ use std::sync::mpsc::Sender;
 pub fn handle_command(command: String, tx: Sender<Event>) -> Result<Option<String>, ParseError> {
     let parts: Vec<&str> = command.split(" ").collect();
     match parts.get(0)? {
-        &"status" => Ok(Some("I'm alive".to_owned())),
+        &"status" => handle_status_command(tx.clone()),
         &"signup" => handle_signup_command(parts.iter().skip(1).collect(), tx.clone()),
         _ => Err(ParseError {}),
     }
+}
+
+fn handle_status_command(tx: Sender<Event>) -> Result<Option<String>, ParseError> {
+    tx.send(Event::InternalSlackStatusCommand).unwrap();
+    Ok(None)
 }
 
 fn handle_signup_command(

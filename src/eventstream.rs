@@ -38,6 +38,7 @@ pub fn watch_event_stream(tx: Sender<Event>, token: &'static str, status_tx: Sen
                 println!("Event stream connection initialized.");
                 res.into_body().for_each(move |chunk| {
                     status_tx2.send(StatusPing::StreamEventReceived).unwrap();
+                    tx2.send(Event::InternalStreamEventReceived).unwrap();
 
                     let string_chunk = &String::from_utf8(chunk.into_bytes().to_vec())
                         .unwrap_or("invalid chunk bytes".to_string());

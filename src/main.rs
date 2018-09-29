@@ -1,4 +1,3 @@
-#![feature(extern_prelude)]
 #![feature(try_trait)]
 
 extern crate chrono;

@@ -64,9 +64,11 @@ pub fn watch_event_stream(tx: Sender<Event>, token: &'static str, status_tx: Sen
                     }
                     Ok(())
                 })
-            }).map_err(|err| {
+            })
+            .map_err(|err| {
                 println!("Error on get: {}", err);
-            }).and_then(|_| {
+            })
+            .and_then(|_| {
                 println!("Reconnecting to Lichess event stream in 7 seconds...");
                 thread::sleep(std::time::Duration::from_millis(7000));
                 Ok(Loop::Continue(()))

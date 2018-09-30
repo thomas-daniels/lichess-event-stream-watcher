@@ -73,7 +73,8 @@ fn handle_signup_command(
                     "panic" => Some(Action::EnableChatPanic),
                     "notify" => Some(Action::NotifySlack),
                     _ => None,
-                }).flatten()
+                })
+                .flatten()
                 .collect();
 
             if actions.len() != args.get(8)?.split("+").count() {

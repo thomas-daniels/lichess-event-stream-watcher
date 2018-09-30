@@ -38,7 +38,8 @@ pub fn connect_to_slack(
             .and_then(|res| res.into_body().concat2())
             .map_err(|err| {
                 println!("Err in connect_to_slack: {}", err);
-            }).and_then(move |body| {
+            })
+            .and_then(move |body| {
                 let resp: serde_json::Value = serde_json::from_slice(&body)
                     .expect("could not deserialize Chunk in connect_to_slack");
                 let ws_url = match &resp["url"] {
@@ -82,8 +83,10 @@ pub fn connect_to_slack(
                                                             type_: "message".to_owned(),
                                                             channel: channel,
                                                             text: reply,
-                                                        }).unwrap(),
-                                                    )).unwrap();
+                                                        })
+                                                        .unwrap(),
+                                                    ))
+                                                    .unwrap();
                                             }
                                             _ => {}
                                         }

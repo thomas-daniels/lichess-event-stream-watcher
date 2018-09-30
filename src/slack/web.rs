@@ -13,7 +13,8 @@ pub fn post_message(text: String, token: &'static str, channel: &'static str) {
         let content = json!({
             "channel": channel,
             "text": text
-        }).to_string();
+        })
+        .to_string();
 
         let mut req = Request::new(Body::from(content));
 

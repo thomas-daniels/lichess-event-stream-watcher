@@ -1,3 +1,4 @@
+use chrono::prelude::*;
 use event::Event;
 use futures::future;
 use hyper::header::HeaderValue;
@@ -11,7 +12,6 @@ use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time;
 use tokio;
-use chrono::prelude::*;
 
 pub fn handle_events(
     rx: Receiver<Event>,
@@ -124,7 +124,8 @@ pub fn handle_events(
                                             .iter()
                                             .map(|u| {
                                                 format!("<https://lichess.org/@/{}?mod|{}>", &u, &u)
-                                            }).collect::<Vec<String>>()
+                                            })
+                                            .collect::<Vec<String>>()
                                             .join(", ")
                                     }
                                 ),
@@ -168,11 +169,13 @@ pub fn handle_events(
             }
             Event::InternalRemoveRule(name) => {
                 let slack_message = match rule_manager.remove_rule(name) {
-                    Ok(removed) => if removed {
-                        "Rule removed!".to_owned()
-                    } else {
-                        "No such rule found.".to_owned()
-                    },
+                    Ok(removed) => {
+                        if removed {
+                            "Rule removed!".to_owned()
+                        } else {
+                            "No such rule found.".to_owned()
+                        }
+                    }
                     Err(err) => {
                         println!("Error on .remove_rule: {}", err);
                         format!("Error on removing rule: {}", err)
@@ -187,10 +190,13 @@ pub fn handle_events(
             ),
             Event::InternalStreamEventReceived => latest_event_utc = Utc::now(),
             Event::InternalSlackStatusCommand => slack::web::post_message(
-                format!("I am alive! Latest event: (UTC) {}", latest_event_utc.format("%d/%m/%Y %T")),
+                format!(
+                    "I am alive! Latest event: (UTC) {}",
+                    latest_event_utc.format("%d/%m/%Y %T")
+                ),
                 slack_token,
-                slack_channel
-            )
+                slack_channel,
+            ),
         }
     }
 }

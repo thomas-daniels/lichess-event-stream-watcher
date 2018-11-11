@@ -8,6 +8,7 @@ use hyper_tls::HttpsConnector;
 use serde_json;
 use slack::command::handle_command;
 use slack::event::{RtmRecv, RtmSend};
+use status::StatusPing;
 use std::sync::mpsc::Sender;
 use std::thread;
 use tungstenite::{connect, Message};
@@ -18,6 +19,7 @@ pub fn connect_to_slack(
     bot_id: &'static str,
     listen_channel: &'static str,
     tx: Sender<Event>,
+    status_tx: Sender<StatusPing>,
 ) {
     tokio::spawn(future::loop_fn((), move |_| {
         let https = HttpsConnector::new(2).unwrap();
@@ -33,6 +35,7 @@ pub fn connect_to_slack(
             HeaderValue::from_static("application/x-www-form-urlencoded"),
         );
         let tx2 = tx.clone();
+        let status_tx2 = status_tx.clone();
         client
             .request(req)
             .and_then(|res| res.into_body().concat2())
@@ -65,6 +68,7 @@ pub fn connect_to_slack(
                         Message::Text(text) => match serde_json::from_str(&text) {
                             Ok(message) => match message {
                                 RtmRecv::Message { text, channel, .. } => {
+                                    status_tx2.send(StatusPing::SlackPingReceived).unwrap();
                                     if text.starts_with(&bot_ping) && channel.eq(listen_channel) {
                                         id += 1;
                                         let text_reply = match handle_command(
@@ -95,6 +99,9 @@ pub fn connect_to_slack(
                             },
                             _ => {}
                         },
+                        Message::Ping(_) => {
+                            status_tx2.send(StatusPing::SlackPingReceived).unwrap();
+                        }
                         _ => {}
                     }
                 }

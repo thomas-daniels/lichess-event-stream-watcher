@@ -39,6 +39,7 @@ fn main() {
             conf::SLACK_BOT_USER_ID,
             conf::SLACK_CHANNEL,
             tx.clone(),
+            status_tx.clone(),
         );
 
         eventhandler::handle_events(

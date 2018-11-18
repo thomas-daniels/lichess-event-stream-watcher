@@ -1,4 +1,5 @@
 use event::{Event, FingerPrint, Ip};
+use regex::Regex;
 use signup::rules::{Action, Criterion, Rule};
 use std::error::Error;
 use std::sync::mpsc::Sender;
@@ -52,6 +53,7 @@ fn handle_signup_command(
                 },
                 &&"username" => match criterion_check {
                     &&"contains" => Criterion::UsernameContains(criterion_value),
+                    &&"regex" => Criterion::UsernameRegex(Regex::new(&criterion_value)?),
                     _ => return Err(ParseError {}),
                 },
                 &&"useragent" => match criterion_check {
@@ -137,6 +139,12 @@ impl From<std::option::NoneError> for ParseError {
 
 impl From<std::num::ParseIntError> for ParseError {
     fn from(_: std::num::ParseIntError) -> Self {
+        ParseError {}
+    }
+}
+
+impl From<regex::Error> for ParseError {
+    fn from(_: regex::Error) -> Self {
         ParseError {}
     }
 }

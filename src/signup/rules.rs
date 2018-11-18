@@ -1,4 +1,5 @@
 use event::{Email, FingerPrint, Ip, UserAgent, Username};
+use regex::Regex;
 use std::fs::{File, OpenOptions};
 
 pub struct SignupRulesManager {
@@ -107,6 +108,7 @@ pub enum Criterion {
     PrintMatch(FingerPrint),
     EmailContains(String),
     UsernameContains(String),
+    UsernameRegex(#[serde(with = "serde_regex")] Regex),
     UseragentLengthLte(usize),
 }
 
@@ -129,6 +131,7 @@ impl Criterion {
             Criterion::UsernameContains(part) => {
                 username.0.to_uppercase().contains(&part.to_uppercase())
             }
+            Criterion::UsernameRegex(re) => re.is_match(&username.0),
             Criterion::UseragentLengthLte(len) => user_agent.0.len() <= *len,
         }
     }
@@ -141,6 +144,7 @@ impl Criterion {
             Criterion::UsernameContains(s) => {
                 format!("Username contains (case-insensitive) `{}`", s)
             }
+            Criterion::UsernameRegex(s) => format!("Username matches regular expression `{}`", s),
             Criterion::UseragentLengthLte(l) => {
                 format!("User agent length is less than or equal to {}", l)
             }

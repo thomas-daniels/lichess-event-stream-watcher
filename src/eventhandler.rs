@@ -161,9 +161,10 @@ pub fn handle_events(
                 let slack_message = match rule_manager.find_rule(name) {
                     None => "No such rule found.".to_owned(),
                     Some(rule) => format!(
-                        "Criterion: {}.\nActions: {:?}",
+                        "Criterion: {}.\nActions: {:?}{}",
                         rule.criterion.friendly(),
-                        rule.actions
+                        rule.actions,
+                        if rule.no_delay { ". No delay." } else { "" } 
                     ),
                 };
                 slack::web::post_message(slack_message, slack_token, slack_channel);

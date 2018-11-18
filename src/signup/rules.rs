@@ -93,6 +93,8 @@ pub struct Rule {
     pub match_count: usize,
     #[serde(default = "default_mrc")]
     pub most_recent_caught: Vec<String>,
+    #[serde(default = "default_nodelay")]
+    pub no_delay: bool,
 }
 
 fn default_match_count() -> usize {
@@ -100,6 +102,10 @@ fn default_match_count() -> usize {
 }
 fn default_mrc() -> Vec<String> {
     vec![]
+}
+
+fn default_nodelay() -> bool {
+    false
 }
 
 #[derive(Serialize, Deserialize)]

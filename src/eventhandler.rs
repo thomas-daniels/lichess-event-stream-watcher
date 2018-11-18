@@ -68,10 +68,11 @@ pub fn handle_events(
                                     let https = HttpsConnector::new(1).unwrap();
                                     let client = Client::builder().build::<_, Body>(https);
 
-                                    let delay = action.eq(&Action::EngineMark)
-                                        || action.eq(&Action::BoostMark)
-                                        || action.eq(&Action::IpBan)
-                                        || action.eq(&Action::Close);
+                                    let delay = !rule.no_delay
+                                        && (action.eq(&Action::EngineMark)
+                                            || action.eq(&Action::BoostMark)
+                                            || action.eq(&Action::IpBan)
+                                            || action.eq(&Action::Close));
 
                                     tokio::spawn(future::lazy(move || {
                                         if delay {

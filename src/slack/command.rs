@@ -83,12 +83,18 @@ fn handle_signup_command(
                 return Err(ParseError {});
             }
 
+            let no_delay = match args.get(9) {
+                Some(s) => s == &&"nodelay",
+                None => false,
+            };
+
             let rule = Rule {
                 name,
                 criterion,
                 actions,
                 match_count: 0,
                 most_recent_caught: vec![],
+                no_delay,
             };
 
             tx.send(Event::InternalAddRule { rule }).unwrap();

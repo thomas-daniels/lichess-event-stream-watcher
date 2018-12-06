@@ -71,7 +71,7 @@ pub fn periodically_ensure_alive_connection(status_tx: Sender<StatusPing>) {
         let status_tx2 = status_tx.clone();
         Delay::new(Instant::now() + Duration::from_secs(15))
             .and_then(move |_| {
-                println("StatusPing::* sending");
+                println!("StatusPing::* sending");
                 status_tx2
                     .send(StatusPing::EnsureAliveConnectionLichess)
                     .unwrap();

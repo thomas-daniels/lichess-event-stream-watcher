@@ -125,6 +125,7 @@ fn handle_signup_command(
 }
 
 fn handle_external_command(command: &str) -> Result<Option<String>, ParseError> {
+    println!("handle_external_command called");
     match std::process::Command::new(command).output() {
         Ok(_) => Ok(None),
         Err(_) => Ok(Some(String::from("Failed executing command.")))

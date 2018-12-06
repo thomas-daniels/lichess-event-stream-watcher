@@ -32,6 +32,7 @@ pub fn status_loop(
                     Ok(Loop::Continue((Instant::now(), latest_slack_event)))
                 }
                 StatusPing::EnsureAliveConnectionLichess => {
+                    println!("EnsureAliveConnectionLichess received");
                     if latest_stream_event.elapsed().as_secs() > 90 {
                         eventstream::watch_event_stream(main_tx.clone(), token, status_tx.clone());
                         println!("Event stream watcher restarted.");

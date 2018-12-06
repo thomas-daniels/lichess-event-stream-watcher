@@ -67,9 +67,11 @@ pub fn status_loop(
 
 pub fn periodically_ensure_alive_connection(status_tx: Sender<StatusPing>) {
     tokio::spawn(loop_fn((), move |_| {
+        println!("New iteration of perodically_ensure_alive_connection");
         let status_tx2 = status_tx.clone();
         Delay::new(Instant::now() + Duration::from_secs(15))
             .and_then(move |_| {
+                println("StatusPing::* sending");
                 status_tx2
                     .send(StatusPing::EnsureAliveConnectionLichess)
                     .unwrap();

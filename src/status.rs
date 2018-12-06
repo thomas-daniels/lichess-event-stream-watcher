@@ -45,6 +45,7 @@ pub fn status_loop(
                     Ok(Loop::Continue((latest_stream_event, Instant::now())))
                 }
                 StatusPing::EnsureAliveConnectionSlack => {
+                    println!("EnsureAliveConnectionSlack received");
                     if latest_slack_event.elapsed().as_secs() > 720 {
                         slack::rtm::connect_to_slack(
                             conf::SLACK_BOT_TOKEN,

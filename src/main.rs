@@ -18,6 +18,8 @@ extern crate serde_json;
 extern crate regex;
 extern crate serde_regex;
 
+extern crate rlua;
+
 mod conf;
 mod event;
 mod eventhandler;

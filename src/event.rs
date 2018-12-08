@@ -1,16 +1,11 @@
 use signup::rules::Rule;
+use rlua::UserData;
 
 #[derive(Deserialize)]
 #[serde(tag = "t")]
 pub enum Event {
     #[serde(rename_all = "camelCase", rename = "signup")]
-    Signup {
-        username: Username,
-        email: Email,
-        ip: Ip,
-        user_agent: UserAgent,
-        finger_print: Option<FingerPrint>,
-    },
+    Signup(User),
     InternalAddRule {
         rule: Rule,
     },
@@ -25,6 +20,19 @@ impl Event {
     pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(json)
     }
+}
+
+#[derive(Deserialize)]
+pub struct User {
+    username: Username,
+    email: Email,
+    ip: Ip,
+    user_agent: UserAgent,
+    finger_print: Option<FingerPrint>,
+}
+
+impl UserData for User {
+
 }
 
 #[derive(Deserialize, PartialEq)]

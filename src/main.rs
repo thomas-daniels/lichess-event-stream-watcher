@@ -46,6 +46,9 @@ fn main() {
             status_tx.clone(),
         );
 
+        status::status_loop(status_rx, tx.clone(), conf::TOKEN, status_tx.clone());
+        status::periodically_ensure_alive_connection(status_tx.clone());
+
         eventhandler::handle_events(
             rx,
             conf::TOKEN,
@@ -54,9 +57,6 @@ fn main() {
             conf::SLACK_CHANNEL,
             conf::SLACK_NOTIFY_CHANNEL,
         );
-
-        status::status_loop(status_rx, tx.clone(), conf::TOKEN, status_tx.clone());
-        status::periodically_ensure_alive_connection(status_tx.clone());
 
         Ok(())
     }));

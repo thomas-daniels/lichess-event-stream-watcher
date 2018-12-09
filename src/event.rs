@@ -4,13 +4,7 @@ use signup::rules::Rule;
 #[serde(tag = "t")]
 pub enum Event {
     #[serde(rename_all = "camelCase", rename = "signup")]
-    Signup {
-        username: Username,
-        email: Email,
-        ip: Ip,
-        user_agent: UserAgent,
-        finger_print: Option<FingerPrint>,
-    },
+    Signup(User),
     InternalAddRule {
         rule: Rule,
     },
@@ -27,17 +21,27 @@ impl Event {
     }
 }
 
-#[derive(Deserialize, PartialEq)]
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct User {
+    pub username: Username,
+    pub email: Email,
+    pub ip: Ip,
+    pub user_agent: UserAgent,
+    pub finger_print: Option<FingerPrint>,
+}
+
+#[derive(Deserialize, PartialEq, Clone)]
 pub struct Username(pub String);
 
-#[derive(Deserialize, PartialEq)]
+#[derive(Deserialize, PartialEq, Clone)]
 pub struct Email(pub String);
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub struct Ip(pub String);
 
-#[derive(Deserialize, PartialEq)]
+#[derive(Deserialize, PartialEq, Clone)]
 pub struct UserAgent(pub String);
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub struct FingerPrint(pub String);

@@ -5,10 +5,11 @@ use std::error::Error;
 use std::sync::mpsc::Sender;
 
 pub fn handle_command(command: String, tx: Sender<Event>) -> Result<Option<String>, ParseError> {
-    let parts: Vec<&str> = command.split(" ").collect();
+    let cmd = command.clone();
+    let parts: Vec<&str> = cmd.split(" ").collect();
     match parts.get(0)? {
         &"status" => handle_status_command(tx.clone()),
-        &"signup" => handle_signup_command(parts.iter().skip(1).collect(), tx.clone()),
+        &"signup" => handle_signup_command(command, tx.clone()),
         &"upgrade" => handle_external_command("./upgrade"),
         &"restart" => handle_external_command("./restart"),
         _ => Err(ParseError {}),
@@ -20,10 +21,19 @@ fn handle_status_command(tx: Sender<Event>) -> Result<Option<String>, ParseError
     Ok(None)
 }
 
-fn handle_signup_command(
-    args: Vec<&&str>,
-    tx: Sender<Event>,
-) -> Result<Option<String>, ParseError> {
+fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<String>, ParseError> {
+    let mut first_split: Vec<&str> = command.split("`").collect();
+    let mut lua_code = "";
+    if first_split.len() > 2 {
+        lua_code = first_split.get(1)?.clone(); // only valid case of ` in command
+        first_split[0] = first_split[0].trim();
+        first_split[1] = "$ $";
+        first_split[2] = first_split[2].trim();
+    }
+    let lua_code = lua_code;
+    let joined = first_split.join(" ");
+    let split: Vec<&str> = joined.split(" ").collect();
+    let args: Vec<&&str> = split.iter().skip(1).collect();
     if !args.get(0)?.eq(&&"rules") {
         return Err(ParseError {});
     }
@@ -62,6 +72,7 @@ fn handle_signup_command(
                     &&"length-lte" => Criterion::UseragentLengthLte(criterion_value.parse()?),
                     _ => return Err(ParseError {}),
                 },
+                &&"lua" => Criterion::Lua(lua_code.to_string()),
                 _ => return Err(ParseError {}),
             };
 
@@ -128,7 +139,7 @@ fn handle_external_command(command: &str) -> Result<Option<String>, ParseError> 
     println!("handle_external_command called");
     match std::process::Command::new(command).output() {
         Ok(_) => Ok(None),
-        Err(_) => Ok(Some(String::from("Failed executing command.")))
+        Err(_) => Ok(Some(String::from("Failed executing command."))),
     }
 }
 
@@ -161,6 +172,12 @@ impl From<std::num::ParseIntError> for ParseError {
 
 impl From<regex::Error> for ParseError {
     fn from(_: regex::Error) -> Self {
+        ParseError {}
+    }
+}
+
+impl From<rlua::Error> for ParseError {
+    fn from(_: rlua::Error) -> Self {
         ParseError {}
     }
 }

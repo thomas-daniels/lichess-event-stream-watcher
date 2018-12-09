@@ -1,5 +1,7 @@
-use event::{Email, FingerPrint, Ip, UserAgent, Username};
+use event::{FingerPrint, Ip, User, Username};
+use lua;
 use regex::Regex;
+use rlua;
 use std::fs::{File, OpenOptions};
 
 pub struct SignupRulesManager {
@@ -116,30 +118,29 @@ pub enum Criterion {
     UsernameContains(String),
     UsernameRegex(#[serde(with = "serde_regex")] Regex),
     UseragentLengthLte(usize),
+    Lua(String),
 }
 
 impl Criterion {
-    pub fn take_action(
-        &self,
-        username: &Username,
-        email: &Email,
-        ip: &Ip,
-        user_agent: &UserAgent,
-        finger_print: &Option<FingerPrint>,
-    ) -> bool {
-        match self {
-            Criterion::IpMatch(exact) => exact.eq(ip),
-            Criterion::PrintMatch(exact) => match finger_print {
+    pub fn take_action(&self, user: &User, lua_state: &rlua::Lua) -> Result<bool, rlua::Error> {
+        Ok(match self {
+            Criterion::IpMatch(exact) => exact.eq(&user.ip),
+            Criterion::PrintMatch(exact) => match user.finger_print {
                 None => false,
-                Some(fp) => exact.eq(fp),
+                Some(ref fp) => exact.eq(&fp),
             },
-            Criterion::EmailContains(part) => email.0.to_uppercase().contains(&part.to_uppercase()),
-            Criterion::UsernameContains(part) => {
-                username.0.to_uppercase().contains(&part.to_uppercase())
+            Criterion::EmailContains(part) => {
+                user.email.0.to_uppercase().contains(&part.to_uppercase())
             }
-            Criterion::UsernameRegex(re) => re.is_match(&username.0),
-            Criterion::UseragentLengthLte(len) => user_agent.0.len() <= *len,
-        }
+            Criterion::UsernameContains(part) => user
+                .username
+                .0
+                .to_uppercase()
+                .contains(&part.to_uppercase()),
+            Criterion::UsernameRegex(re) => re.is_match(&user.username.0),
+            Criterion::UseragentLengthLte(len) => user.user_agent.0.len() <= *len,
+            Criterion::Lua(code) => lua::call_constraints_function(code, user.clone(), lua_state)?,
+        })
     }
 
     pub fn friendly(&self) -> String {
@@ -154,6 +155,7 @@ impl Criterion {
             Criterion::UseragentLengthLte(l) => {
                 format!("User agent length is less than or equal to {}", l)
             }
+            Criterion::Lua(code) => format!("Lua code `{}` evaluates to true.", code),
         }
     }
 }

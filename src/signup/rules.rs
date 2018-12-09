@@ -115,6 +115,7 @@ pub enum Criterion {
     IpMatch(Ip),
     PrintMatch(FingerPrint),
     EmailContains(String),
+    EmailRegex(#[serde(with = "serde_regex")] Regex),
     UsernameContains(String),
     UsernameRegex(#[serde(with = "serde_regex")] Regex),
     UseragentLengthLte(usize),
@@ -132,6 +133,7 @@ impl Criterion {
             Criterion::EmailContains(part) => {
                 user.email.0.to_uppercase().contains(&part.to_uppercase())
             }
+            Criterion::EmailRegex(re) => re.is_match(&user.email.0),
             Criterion::UsernameContains(part) => user
                 .username
                 .0
@@ -148,6 +150,7 @@ impl Criterion {
             Criterion::IpMatch(exact) => format!("IP equals `{}`", exact.0),
             Criterion::PrintMatch(exact) => format!("Fingerprint hash equals `{}`", exact.0),
             Criterion::EmailContains(s) => format!("Email address contains `{}`", s),
+            Criterion::EmailRegex(s) => format!("Email address matches regular expression `{}`", s),
             Criterion::UsernameContains(s) => {
                 format!("Username contains (case-insensitive) `{}`", s)
             }

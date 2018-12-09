@@ -61,6 +61,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 },
                 &&"email" => match criterion_check {
                     &&"contains" => Criterion::EmailContains(criterion_value),
+                    &&"regex" => Criterion::EmailRegex(Regex::new(&criterion_value)?),
                     _ => return Err(ParseError {}),
                 },
                 &&"username" => match criterion_check {

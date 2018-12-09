@@ -1,5 +1,4 @@
 use signup::rules::Rule;
-use rlua::UserData;
 
 #[derive(Deserialize)]
 #[serde(tag = "t")]
@@ -22,30 +21,27 @@ impl Event {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct User {
-    username: Username,
-    email: Email,
-    ip: Ip,
-    user_agent: UserAgent,
-    finger_print: Option<FingerPrint>,
+    pub username: Username,
+    pub email: Email,
+    pub ip: Ip,
+    pub user_agent: UserAgent,
+    pub finger_print: Option<FingerPrint>,
 }
 
-impl UserData for User {
-
-}
-
-#[derive(Deserialize, PartialEq)]
+#[derive(Deserialize, PartialEq, Clone)]
 pub struct Username(pub String);
 
-#[derive(Deserialize, PartialEq)]
+#[derive(Deserialize, PartialEq, Clone)]
 pub struct Email(pub String);
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub struct Ip(pub String);
 
-#[derive(Deserialize, PartialEq)]
+#[derive(Deserialize, PartialEq, Clone)]
 pub struct UserAgent(pub String);
 
-#[derive(Serialize, Deserialize, PartialEq)]
+#[derive(Serialize, Deserialize, PartialEq, Clone)]
 pub struct FingerPrint(pub String);

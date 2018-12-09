@@ -24,6 +24,7 @@ mod conf;
 mod event;
 mod eventhandler;
 mod eventstream;
+mod lua;
 mod signup;
 mod slack;
 mod status;

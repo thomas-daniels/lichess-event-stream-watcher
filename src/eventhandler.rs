@@ -5,6 +5,7 @@ use hyper::header::HeaderValue;
 use hyper::rt::Future;
 use hyper::{Body, Client, Method, Request};
 use hyper_tls::HttpsConnector;
+use lua;
 use rand::{thread_rng, Rng};
 use signup::rules::*;
 use slack;
@@ -27,118 +28,123 @@ pub fn handle_events(
 
     let mut latest_event_utc: DateTime<Utc> = Utc::now();
 
+    let lua_state = lua::new_lua();
+
     loop {
         let event = rx.recv().unwrap();
 
         match event {
-            Event::Signup {
-                username,
-                email,
-                ip,
-                user_agent,
-                finger_print,
-            } => {
+            Event::Signup(user) => {
                 let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;
 
                 let mut matched_rules: Vec<String> = vec![];
 
                 for rule in &rule_manager.rules {
-                    if rule.criterion.take_action(
-                        &username,
-                        &email,
-                        &ip,
-                        &user_agent,
-                        &finger_print,
-                    ) {
-                        matched_rules.push(rule.name.clone());
+                    let take_action = rule.criterion.take_action(&user, &lua_state);
+                    match take_action {
+                        Ok(true) => {
+                            matched_rules.push(rule.name.clone());
 
-                        let bearer = "Bearer ".to_owned() + token;
+                            let bearer = "Bearer ".to_owned() + token;
 
-                        for action in &rule.actions {
-                            match action.api_endpoint(&username) {
-                                Some(endpoint) => {
-                                    let mut action_req = Request::new(Body::from(""));
-                                    *action_req.uri_mut() = endpoint.parse().unwrap();
-                                    *action_req.method_mut() = Method::POST;
-                                    action_req.headers_mut().insert(
-                                        hyper::header::AUTHORIZATION,
-                                        HeaderValue::from_str(&bearer).unwrap(),
-                                    );
-
-                                    let https = HttpsConnector::new(1).unwrap();
-                                    let client = Client::builder().build::<_, Body>(https);
-
-                                    let delay = !rule.no_delay
-                                        && (action.eq(&Action::EngineMark)
-                                            || action.eq(&Action::BoostMark)
-                                            || action.eq(&Action::IpBan)
-                                            || action.eq(&Action::Close));
-
-                                    tokio::spawn(future::lazy(move || {
-                                        if delay {
-                                            thread::sleep(time::Duration::from_millis(
-                                                delay_ms_if_needed,
-                                            ));
-                                        }
-
-                                        client
-                                            .request(action_req)
-                                            .map(|res| println!("Action: {}.", res.status()))
-                                            .map_err(|err| {
-                                                println!("Error on mod action: {}", err);
-                                            })
-                                    }));
-                                }
-                                None => {
-                                    if action.eq(&Action::NotifySlack) {
-                                        slack::web::post_message(
-                                            format!(
-                                                "Rule {} match: https://lichess.org/@/{}",
-                                                &rule.name, &username.0
-                                            ),
-                                            slack_token,
-                                            slack_notify_channel,
+                            for action in &rule.actions {
+                                match action.api_endpoint(&user.username) {
+                                    Some(endpoint) => {
+                                        let mut action_req = Request::new(Body::from(""));
+                                        *action_req.uri_mut() = endpoint.parse().unwrap();
+                                        *action_req.method_mut() = Method::POST;
+                                        action_req.headers_mut().insert(
+                                            hyper::header::AUTHORIZATION,
+                                            HeaderValue::from_str(&bearer).unwrap(),
                                         );
+
+                                        let https = HttpsConnector::new(1).unwrap();
+                                        let client = Client::builder().build::<_, Body>(https);
+
+                                        let delay = !rule.no_delay
+                                            && (action.eq(&Action::EngineMark)
+                                                || action.eq(&Action::BoostMark)
+                                                || action.eq(&Action::IpBan)
+                                                || action.eq(&Action::Close));
+
+                                        tokio::spawn(future::lazy(move || {
+                                            if delay {
+                                                thread::sleep(time::Duration::from_millis(
+                                                    delay_ms_if_needed,
+                                                ));
+                                            }
+
+                                            client
+                                                .request(action_req)
+                                                .map(|res| println!("Action: {}.", res.status()))
+                                                .map_err(|err| {
+                                                    println!("Error on mod action: {}", err);
+                                                })
+                                        }));
+                                    }
+                                    None => {
+                                        if action.eq(&Action::NotifySlack) {
+                                            slack::web::post_message(
+                                                format!(
+                                                    "Rule {} match: https://lichess.org/@/{}",
+                                                    &rule.name, &user.username.0
+                                                ),
+                                                slack_token,
+                                                slack_notify_channel,
+                                            );
+                                        }
                                     }
                                 }
                             }
-                        }
 
-                        if rule.actions.len() > 1
-                            || !rule.actions.get(0).eq(&Some(&Action::NotifySlack))
-                        {
-                            slack::web::post_message(
-                                format!(
-                                    "Rule {} match: \
-                                     {} on <https://lichess.org/@/{}?mod|{}>. \
-                                     {} previous matches. \
-                                     Recent matches: {}",
-                                    &rule.name,
-                                    &rule.criterion.friendly(),
-                                    &username.0,
-                                    &username.0,
-                                    &rule.match_count,
-                                    if rule.most_recent_caught.len() == 0 {
-                                        "None".to_string()
-                                    } else {
-                                        rule.most_recent_caught
-                                            .iter()
-                                            .map(|u| {
-                                                format!("<https://lichess.org/@/{}?mod|{}>", &u, &u)
-                                            })
-                                            .collect::<Vec<String>>()
-                                            .join(", ")
-                                    }
-                                ),
-                                slack_token,
-                                slack_channel,
+                            if rule.actions.len() > 1
+                                || !rule.actions.get(0).eq(&Some(&Action::NotifySlack))
+                            {
+                                slack::web::post_message(
+                                    format!(
+                                        "Rule {} match: \
+                                         {} on <https://lichess.org/@/{}?mod|{}>. \
+                                         {} previous matches. \
+                                         Recent matches: {}",
+                                        &rule.name,
+                                        &rule.criterion.friendly(),
+                                        &user.username.0,
+                                        &user.username.0,
+                                        &rule.match_count,
+                                        if rule.most_recent_caught.len() == 0 {
+                                            "None".to_string()
+                                        } else {
+                                            rule.most_recent_caught
+                                                .iter()
+                                                .map(|u| {
+                                                    format!(
+                                                        "<https://lichess.org/@/{}?mod|{}>",
+                                                        &u, &u
+                                                    )
+                                                })
+                                                .collect::<Vec<String>>()
+                                                .join(", ")
+                                        }
+                                    ),
+                                    slack_token,
+                                    slack_channel,
+                                );
+                            }
+                        }
+                        Ok(false) => {}
+                        Err(err) => {
+                            let err_msg = format!(
+                                "Error on `{}` for user `{}` (probably in Lua snippet): `{}`",
+                                &rule.name, &user.username.0, err
                             );
+                            println!("{}", err_msg.clone());
+                            slack::web::post_message(err_msg, slack_token, slack_channel);
                         }
                     }
                 }
 
                 for name in matched_rules {
-                    match rule_manager.caught(name, &username) {
+                    match rule_manager.caught(name, &user.username) {
                         Ok(_) => {}
                         Err(e) => println!("Error in .caught: {}", e),
                     };
@@ -164,7 +170,7 @@ pub fn handle_events(
                         "Criterion: {}.\nActions: {:?}{}",
                         rule.criterion.friendly(),
                         rule.actions,
-                        if rule.no_delay { ". No delay." } else { "" } 
+                        if rule.no_delay { ". No delay." } else { "" }
                     ),
                 };
                 slack::web::post_message(slack_message, slack_token, slack_channel);

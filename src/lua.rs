@@ -1,4 +1,6 @@
 use event::User;
+use regex::Regex;
+use rlua;
 use rlua::{Function, Lua, UserData, UserDataMethods};
 
 impl UserData for User {
@@ -15,11 +17,30 @@ impl UserData for User {
 }
 
 pub fn new_lua() -> Lua {
-    Lua::new()
+    let l = Lua::new();
+    l.context(|lua_ctx| {
+        let regex_fn = lua_ctx
+            .create_function(
+                |_, (text, pattern): (String, String)| match Regex::new(&pattern) {
+                    Ok(re) => Ok(re.is_match(&text)),
+                    Err(_) => Err(rlua::Error::RuntimeError(String::from(
+                        "Error in 'regex' function",
+                    ))),
+                },
+            )
+            .unwrap();
+        let globals = lua_ctx.globals();
+        globals.set("regex", regex_fn).unwrap();
+    });
+    l
 }
 
 pub fn call_constraints_function(rule: &str, user: User, l: &Lua) -> Result<bool, rlua::Error> {
-    let f: Function = l.eval(&("function(user) return ".to_owned() + rule + " end"), None)?;
-    let v: bool = f.call::<_, bool>(user)?;
+    let mut v: bool = false;
+    l.context(|lua_ctx| {
+        let f: Function = lua_ctx.load(&("function(user) return ".to_owned() + rule + " end")).eval()?;
+        v = f.call::<_, bool>(user)?;
+        Ok(())
+    })?;
     Ok(v)
 }

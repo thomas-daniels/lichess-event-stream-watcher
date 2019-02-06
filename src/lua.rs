@@ -2,6 +2,7 @@ use event::User;
 use regex::Regex;
 use rlua;
 use rlua::{Function, Lua, UserData, UserDataMethods};
+use std::net::IpAddr;
 
 impl UserData for User {
     fn add_methods<'lua, M: UserDataMethods<'lua, Self>>(methods: &mut M) {
@@ -29,8 +30,26 @@ pub fn new_lua() -> Lua {
                 },
             )
             .unwrap();
+        let is_in_ip_range = lua_ctx
+            .create_function(|_, (ip, min, max): (String, String, String)| {
+                let addr = ip.parse();
+                let min_addr = min.parse();
+                let max_addr = max.parse();
+                if addr.is_err() || min_addr.is_err() || max_addr.is_err() {
+                    Err(rlua::Error::RuntimeError(String::from(
+                        "Invalid IP in one of the arguments",
+                    )))
+                } else {
+                    let addr: IpAddr = addr.unwrap();
+                    let min_addr: IpAddr = min_addr.unwrap();
+                    let max_addr: IpAddr = max_addr.unwrap();
+                    Ok(addr >= min_addr && addr <= max_addr)
+                }
+            })
+            .unwrap();
         let globals = lua_ctx.globals();
         globals.set("regex", regex_fn).unwrap();
+        globals.set("isInIpRange", is_in_ip_range).unwrap();
     });
     l
 }
@@ -38,7 +57,9 @@ pub fn new_lua() -> Lua {
 pub fn call_constraints_function(rule: &str, user: User, l: &Lua) -> Result<bool, rlua::Error> {
     let mut v: bool = false;
     l.context(|lua_ctx| {
-        let f: Function = lua_ctx.load(&("function(user) return ".to_owned() + rule + " end")).eval()?;
+        let f: Function = lua_ctx
+            .load(&("function(user) return ".to_owned() + rule + " end"))
+            .eval()?;
         v = f.call::<_, bool>(user)?;
         Ok(())
     })?;

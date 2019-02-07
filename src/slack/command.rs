@@ -129,18 +129,14 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
             Ok(None)
         }
         &&"disable-re" => {
-            tx.send(Event::InternalDisableRules(
-                (***args.get(2)?).to_owned().trim_matches('`').to_owned(),
-            ))
-            .unwrap();
+            tx.send(Event::InternalDisableRules((***args.get(2)?).to_owned()))
+                .unwrap();
 
             Ok(None)
         }
         &&"enable-re" => {
-            tx.send(Event::InternalEnableRules(
-                (***args.get(2)?).to_owned().trim_matches('`').to_owned(),
-            ))
-            .unwrap();
+            tx.send(Event::InternalEnableRules((***args.get(2)?).to_owned()))
+                .unwrap();
 
             Ok(None)
         }

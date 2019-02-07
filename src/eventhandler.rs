@@ -30,6 +30,8 @@ pub fn handle_events(
 
     let lua_state = lua::new_lua();
 
+    let mut recently_notified: Vec<String> = vec![];
+
     loop {
         let event = rx.recv().unwrap();
 
@@ -101,8 +103,9 @@ pub fn handle_events(
                                 }
                             }
 
-                            if rule.actions.len() > 1
-                                || !rule.actions.get(0).eq(&Some(&Action::NotifySlack))
+                            if (rule.actions.len() > 1
+                                || !rule.actions.get(0).eq(&Some(&Action::NotifySlack)))
+                                && !recently_notified.contains(&user.username.0)
                             {
                                 slack::web::post_message(
                                     format!(
@@ -133,6 +136,11 @@ pub fn handle_events(
                                     slack_token,
                                     slack_channel,
                                 );
+
+                                recently_notified.insert(0, user.username.0.clone());
+                                if recently_notified.len() > 5 {
+                                    recently_notified.pop();
+                                }
                             }
                         }
                         Ok(false) => {}

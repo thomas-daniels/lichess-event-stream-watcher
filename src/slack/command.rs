@@ -109,6 +109,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 match_count: 0,
                 most_recent_caught: vec![],
                 no_delay,
+                enabled: true,
             };
 
             tx.send(Event::InternalAddRule { rule }).unwrap();
@@ -124,6 +125,22 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
         &&"remove" => {
             tx.send(Event::InternalRemoveRule((***args.get(2)?).to_owned()))
                 .unwrap();
+
+            Ok(None)
+        }
+        &&"disable-re" => {
+            tx.send(Event::InternalDisableRules(
+                (***args.get(2)?).to_owned().trim_matches('`').to_owned(),
+            ))
+            .unwrap();
+
+            Ok(None)
+        }
+        &&"enable-re" => {
+            tx.send(Event::InternalEnableRules(
+                (***args.get(2)?).to_owned().trim_matches('`').to_owned(),
+            ))
+            .unwrap();
 
             Ok(None)
         }

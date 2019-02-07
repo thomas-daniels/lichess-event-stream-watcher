@@ -10,6 +10,8 @@ pub enum Event {
     },
     InternalShowRule(String),
     InternalRemoveRule(String),
+    InternalDisableRules(String),
+    InternalEnableRules(String),
     InternalListRules,
     InternalStreamEventReceived,
     InternalSlackStatusCommand,

@@ -40,7 +40,11 @@ pub fn handle_events(
                 let mut matched_rules: Vec<String> = vec![];
 
                 for rule in &rule_manager.rules {
-                    let take_action = rule.criterion.take_action(&user, &lua_state);
+                    let take_action = if !rule.enabled {
+                        Ok(false)
+                    } else {
+                        rule.criterion.take_action(&user, &lua_state)
+                    };
                     match take_action {
                         Ok(true) => {
                             matched_rules.push(rule.name.clone());
@@ -188,6 +192,20 @@ pub fn handle_events(
                         println!("Error on .remove_rule: {}", err);
                         format!("Error on removing rule: {}", err)
                     }
+                };
+                slack::web::post_message(slack_message, slack_token, slack_channel);
+            }
+            Event::InternalDisableRules(pattern) => {
+                let slack_message = match rule_manager.disable_rules(pattern) {
+                    Ok(count) => format!("{} rules disabled.", count),
+                    Err(err) => format!("Error on disabling rules: {}", err),
+                };
+                slack::web::post_message(slack_message, slack_token, slack_channel);
+            }
+            Event::InternalEnableRules(pattern) => {
+                let slack_message = match rule_manager.enable_rules(pattern) {
+                    Ok(count) => format!("{} rules enabled.", count),
+                    Err(err) => format!("Error on enabling rules: {}", err),
                 };
                 slack::web::post_message(slack_message, slack_token, slack_channel);
             }

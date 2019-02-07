@@ -51,8 +51,49 @@ impl SignupRulesManager {
         Ok(before != after)
     }
 
+    fn enable_disable_rules(
+        &mut self,
+        pattern: String,
+        enabled: bool,
+    ) -> Result<i32, Box<std::error::Error>> {
+        match Regex::new(&pattern) {
+            Ok(re) => {
+                let mut counter = 0;
+                for rule in &mut self.rules {
+                    if re.is_match(&rule.name) {
+                        counter += 1;
+                        rule.enabled = enabled;
+                    }
+                }
+                self.save()?;
+                Ok(counter)
+            }
+            _ => Err(Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "Invalid regex.",
+            ))),
+        }
+    }
+
+    pub fn disable_rules(&mut self, pattern: String) -> Result<i32, Box<std::error::Error>> {
+        self.enable_disable_rules(pattern, false)
+    }
+
+    pub fn enable_rules(&mut self, pattern: String) -> Result<i32, Box<std::error::Error>> {
+        self.enable_disable_rules(pattern, true)
+    }
+
     pub fn list_names(&self) -> Vec<String> {
-        self.rules.iter().map(|r| r.name.clone()).collect()
+        self.rules
+            .iter()
+            .map(|r| {
+                if r.enabled {
+                    r.name.clone()
+                } else {
+                    format!("({})", &r.name)
+                }
+            })
+            .collect()
     }
 
     pub fn caught(&mut self, name: String, user: &Username) -> Result<(), Box<std::error::Error>> {
@@ -97,6 +138,8 @@ pub struct Rule {
     pub most_recent_caught: Vec<String>,
     #[serde(default = "default_nodelay")]
     pub no_delay: bool,
+    #[serde(default = "default_enabled")]
+    pub enabled: bool,
 }
 
 fn default_match_count() -> usize {
@@ -108,6 +151,10 @@ fn default_mrc() -> Vec<String> {
 
 fn default_nodelay() -> bool {
     false
+}
+
+fn default_enabled() -> bool {
+    true
 }
 
 #[derive(Serialize, Deserialize)]

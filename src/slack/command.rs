@@ -1,8 +1,9 @@
-use event::{Event, FingerPrint, Ip};
+use event::{Event, FingerPrint, Ip, User};
 use regex::Regex;
 use signup::rules::{Action, Criterion, Rule};
 use std::error::Error;
 use std::sync::mpsc::Sender;
+use serde_json;
 
 pub fn handle_command(command: String, tx: Sender<Event>) -> Result<Option<String>, ParseError> {
     let cmd = command.clone();
@@ -23,14 +24,14 @@ fn handle_status_command(tx: Sender<Event>) -> Result<Option<String>, ParseError
 
 fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<String>, ParseError> {
     let mut first_split: Vec<&str> = command.split("`").collect();
-    let mut lua_code = "";
+    let mut code = "";
     if first_split.len() > 2 {
-        lua_code = first_split.get(1)?.clone(); // only valid case of ` in command
+        code = first_split.get(1)?.clone();
         first_split[0] = first_split[0].trim();
         first_split[1] = "$ $";
         first_split[2] = first_split[2].trim();
     }
-    let lua_code = lua_code;
+    let code = code;
     let joined = first_split.join(" ");
     let split: Vec<&str> = joined.split(" ").collect();
     let args: Vec<&&str> = split.iter().skip(1).collect();
@@ -73,7 +74,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                     &&"length-lte" => Criterion::UseragentLengthLte(criterion_value.parse()?),
                     _ => return Err(ParseError {}),
                 },
-                &&"lua" => Criterion::Lua(lua_code.to_string()),
+                &&"lua" => Criterion::Lua(code.to_string()),
                 _ => return Err(ParseError {}),
             };
 
@@ -145,6 +146,11 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
 
             Ok(None)
         }
+        &&"test" => {
+            tx.send(Event::InternalHypotheticalSignup(User::from_json(code)?)).unwrap();
+
+            Ok(None)
+        }
         _ => Err(ParseError {}),
     }
 }
@@ -192,6 +198,12 @@ impl From<regex::Error> for ParseError {
 
 impl From<rlua::Error> for ParseError {
     fn from(_: rlua::Error) -> Self {
+        ParseError {}
+    }
+}
+
+impl From<serde_json::Error> for ParseError {
+    fn from(_: serde_json::Error) -> Self {
         ParseError {}
     }
 }

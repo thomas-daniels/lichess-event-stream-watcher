@@ -34,9 +34,16 @@ pub fn handle_events(
 
     loop {
         let event = rx.recv().unwrap();
+        let event2 = event.clone();
 
         match event {
-            Event::Signup(user) => {
+            Event::Signup(user) | Event::InternalHypotheticalSignup(user) => {
+                let hypothetical = match event2 {
+                    Event::Signup(_) => false,
+                    Event::InternalHypotheticalSignup(_) => true,
+                    _ => panic!("This is impossible."),
+                };
+
                 let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;
 
                 let mut matched_rules: Vec<String> = vec![];
@@ -47,7 +54,20 @@ pub fn handle_events(
                     } else {
                         rule.criterion.take_action(&user, &lua_state)
                     };
-                    match take_action {
+
+                    if hypothetical && take_action.clone().unwrap_or(false) {
+                        slack::web::post_message(
+                            format!("Rule {} would take these actions: {:?}", &rule.name, &rule.actions),
+                            slack_token, slack_channel
+                        );
+                    }
+                    let take_real_action = if take_action.is_ok() {
+                        Ok(take_action.unwrap() && !hypothetical)
+                    } else {
+                        take_action
+                    };
+
+                    match take_real_action {
                         Ok(true) => {
                             matched_rules.push(rule.name.clone());
 
@@ -156,11 +176,13 @@ pub fn handle_events(
                     }
                 }
 
-                for name in matched_rules {
-                    match rule_manager.caught(name, &user.username) {
-                        Ok(_) => {}
-                        Err(e) => println!("Error in .caught: {}", e),
-                    };
+                if !hypothetical {
+                    for name in matched_rules {
+                        match rule_manager.caught(name, &user.username) {
+                            Ok(_) => {}
+                            Err(e) => println!("Error in .caught: {}", e),
+                        };
+                    }
                 }
             }
             Event::InternalAddRule { rule } => match rule_manager.add_rule(rule) {

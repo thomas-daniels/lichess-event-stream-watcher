@@ -1,10 +1,11 @@
 use signup::rules::Rule;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 #[serde(tag = "t")]
 pub enum Event {
     #[serde(rename_all = "camelCase", rename = "signup")]
     Signup(User),
+    InternalHypotheticalSignup(User),
     InternalAddRule {
         rule: Rule,
     },
@@ -31,6 +32,12 @@ pub struct User {
     pub ip: Ip,
     pub user_agent: UserAgent,
     pub finger_print: Option<FingerPrint>,
+}
+
+impl User {
+    pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
+        serde_json::from_str(json)
+    }
 }
 
 #[derive(Deserialize, PartialEq, Clone)]

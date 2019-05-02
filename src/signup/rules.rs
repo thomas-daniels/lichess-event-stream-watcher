@@ -127,7 +127,7 @@ impl SignupRulesManager {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Rule {
     pub name: String,
     pub criterion: Criterion,
@@ -157,7 +157,7 @@ fn default_enabled() -> bool {
     true
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum Criterion {
     IpMatch(Ip),
     PrintMatch(FingerPrint),
@@ -210,7 +210,7 @@ impl Criterion {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub enum Action {
     Shadowban,
     EngineMark,

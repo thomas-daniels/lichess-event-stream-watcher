@@ -1,4 +1,4 @@
-use event::{Event, FingerPrint, Ip, User};
+use event::{Email, Event, FingerPrint, Ip, User};
 use regex::Regex;
 use signup::rules::{Action, Criterion, Rule};
 use std::error::Error;
@@ -147,7 +147,17 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
             Ok(None)
         }
         &&"test" => {
-            tx.send(Event::InternalHypotheticalSignup(User::from_json(code)?)).unwrap();
+            let user_unpreprocessed = User::from_json(code)?;
+            let Email(email) = user_unpreprocessed.email;
+            let email_processed = email.split("|").collect::<Vec<&str>>().get(1)?.trim_matches('>');
+            let user = User {
+                username: user_unpreprocessed.username,
+                ip: user_unpreprocessed.ip,
+                finger_print: user_unpreprocessed.finger_print,
+                user_agent: user_unpreprocessed.user_agent,
+                email: Email(email_processed.to_string()),
+            };
+            tx.send(Event::InternalHypotheticalSignup(user)).unwrap();
 
             Ok(None)
         }

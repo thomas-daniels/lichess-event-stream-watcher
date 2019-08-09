@@ -1,12 +1,4 @@
-Usage: create `src/conf.rs` that looks like this:
+Usage:
 
-```
-pub const TOKEN: &'static str = "Lichess API token";
-pub const RULES_PATH: &'static str = "rules/rules.txt";
-pub const SLACK_BOT_TOKEN: &'static str = "Slack bot token";
-pub const SLACK_BOT_USER_ID: &'static str = "Slack bot user ID";
-pub const SLACK_CHANNEL: &'static str = "Slack channel ID";
-pub const SLACK_NOTIFY_CHANNEL: &'static str = "Slack channel ID for notify actions";
-```
-
-Then run with cargo: `cargo run`.
+1. Create a config file with `mv src/conf.rs.default conf.rs`.
+2. Run with cargo: `cargo run`.

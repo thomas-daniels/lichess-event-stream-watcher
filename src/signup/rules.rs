@@ -10,7 +10,7 @@ pub struct SignupRulesManager {
 }
 
 impl SignupRulesManager {
-    pub fn new(rules_path: String) -> Result<Self, Box<std::error::Error>> {
+    pub fn new(rules_path: String) -> Result<Self, Box<dyn std::error::Error>> {
         let f = File::open(&rules_path)?;
         let r = serde_json::from_reader(f)?;
         Ok(SignupRulesManager {
@@ -23,7 +23,7 @@ impl SignupRulesManager {
         self.rules.iter().find(|r| r.name.eq(&name))
     }
 
-    fn save(&self) -> Result<(), Box<std::error::Error>> {
+    fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         let f = OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -32,7 +32,7 @@ impl SignupRulesManager {
         Ok(())
     }
 
-    pub fn add_rule(&mut self, rule: Rule) -> Result<(), Box<std::error::Error>> {
+    pub fn add_rule(&mut self, rule: Rule) -> Result<(), Box<dyn std::error::Error>> {
         if self.find_rule(rule.name.clone()).is_some() {
             return Err(Box::new(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -43,7 +43,7 @@ impl SignupRulesManager {
         self.save()
     }
 
-    pub fn remove_rule(&mut self, name: String) -> Result<bool, Box<std::error::Error>> {
+    pub fn remove_rule(&mut self, name: String) -> Result<bool, Box<dyn std::error::Error>> {
         let before = self.rules.len();
         self.rules.retain(|r| !r.name.eq(&name));
         let after = self.rules.len();
@@ -55,7 +55,7 @@ impl SignupRulesManager {
         &mut self,
         pattern: String,
         enabled: bool,
-    ) -> Result<i32, Box<std::error::Error>> {
+    ) -> Result<i32, Box<dyn std::error::Error>> {
         match Regex::new(&pattern) {
             Ok(re) => {
                 let mut counter = 0;
@@ -75,11 +75,11 @@ impl SignupRulesManager {
         }
     }
 
-    pub fn disable_rules(&mut self, pattern: String) -> Result<i32, Box<std::error::Error>> {
+    pub fn disable_rules(&mut self, pattern: String) -> Result<i32, Box<dyn std::error::Error>> {
         self.enable_disable_rules(pattern, false)
     }
 
-    pub fn enable_rules(&mut self, pattern: String) -> Result<i32, Box<std::error::Error>> {
+    pub fn enable_rules(&mut self, pattern: String) -> Result<i32, Box<dyn std::error::Error>> {
         self.enable_disable_rules(pattern, true)
     }
 
@@ -96,7 +96,7 @@ impl SignupRulesManager {
             .collect()
     }
 
-    pub fn caught(&mut self, name: String, user: &Username) -> Result<(), Box<std::error::Error>> {
+    pub fn caught(&mut self, name: String, user: &Username) -> Result<(), Box<dyn std::error::Error>> {
         let index = self
             .rules
             .iter()

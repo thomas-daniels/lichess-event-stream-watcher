@@ -180,13 +180,13 @@ impl Criterion {
             Criterion::EmailContains(part) => {
                 user.email.0.to_uppercase().contains(&part.to_uppercase())
             }
-            Criterion::EmailRegex(re) => re.is_match(&user.email.0),
+            Criterion::EmailRegex(re) => re.is_match(&user.email.0.to_lowercase()),
             Criterion::UsernameContains(part) => user
                 .username
                 .0
                 .to_uppercase()
                 .contains(&part.to_uppercase()),
-            Criterion::UsernameRegex(re) => re.is_match(&user.username.0),
+            Criterion::UsernameRegex(re) => re.is_match(&user.username.0.to_lowercase()),
             Criterion::UseragentLengthLte(len) => user.user_agent.0.len() <= *len,
             Criterion::Lua(code) => lua::call_constraints_function(code, user.clone(), lua_state)?,
         })

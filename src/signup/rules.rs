@@ -140,6 +140,8 @@ pub struct Rule {
     pub no_delay: bool,
     #[serde(default = "default_enabled")]
     pub enabled: bool,
+    #[serde(default = "default_ip_susp")]
+    pub susp_ip: bool,
 }
 
 fn default_match_count() -> usize {
@@ -155,6 +157,10 @@ fn default_nodelay() -> bool {
 
 fn default_enabled() -> bool {
     true
+}
+
+fn default_ip_susp() -> bool {
+    false
 }
 
 #[derive(Serialize, Deserialize, Clone)]

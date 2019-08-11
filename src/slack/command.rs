@@ -41,7 +41,8 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
 
     match args.get(1)? {
         &&"add" => {
-            if !args.get(3)?.eq(&&"if") || !args.get(7)?.eq(&&"then") {
+            let susp_ip = args.get(3)?.eq(&&"if_susp_ip") || args.get(3)?.eq(&&"if_ip_susp");
+            if !(args.get(3)?.eq(&&"if") || susp_ip) || !args.get(7)?.eq(&&"then") {
                 return Err(parse_error(None));
             }
 
@@ -108,6 +109,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 most_recent_caught: vec![],
                 no_delay,
                 enabled: true,
+                susp_ip: susp_ip
             };
 
             tx.send(Event::InternalAddRule { rule }).unwrap();

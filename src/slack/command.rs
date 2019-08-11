@@ -1,4 +1,4 @@
-use event::{Email, Event, FingerPrint, Ip, User};
+use event::{Email, Event, Ip, User};
 use regex::Regex;
 use signup::rules::{Action, Criterion, Rule};
 use std::error::Error;
@@ -13,7 +13,7 @@ pub fn handle_command(command: String, tx: Sender<Event>) -> Result<Option<Strin
         &"signup" => handle_signup_command(command, tx.clone()),
         &"upgrade" => handle_external_command("./upgrade"),
         &"restart" => handle_external_command("./restart"),
-        _ => Err(ParseError {}),
+        _ => Err(parse_error(None)),
     }
 }
 
@@ -36,14 +36,14 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
     let split: Vec<&str> = joined.split(" ").collect();
     let args: Vec<&&str> = split.iter().skip(1).collect();
     if !args.get(0)?.eq(&&"rules") {
-        return Err(ParseError {});
+        return Err(parse_error(None));
     }
 
     match args.get(1)? {
         &&"add" => {
             let susp_ip = args.get(3)?.eq(&&"if_susp_ip") || args.get(3)?.eq(&&"if_ip_susp");
             if !(args.get(3)?.eq(&&"if") || susp_ip) || !args.get(7)?.eq(&&"then") {
-                return Err(ParseError {});
+                return Err(parse_error(None));
             }
 
             let name: String = (***args.get(2)?).to_owned();
@@ -55,28 +55,25 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
             let criterion = match criterion_element {
                 &&"ip" => match criterion_check {
                     &&"equals" => Criterion::IpMatch(Ip(criterion_value)),
-                    _ => return Err(ParseError {}),
+                    _ => return Err(parse_error(None)),
                 },
-                &&"print" => match criterion_check {
-                    &&"equals" => Criterion::PrintMatch(FingerPrint(criterion_value)),
-                    _ => return Err(ParseError {}),
-                },
+                &&"print" => return Err(parse_error(Some("Use lichess print ban instead"))),
                 &&"email" => match criterion_check {
                     &&"contains" => Criterion::EmailContains(criterion_value),
                     &&"regex" => Criterion::EmailRegex(Regex::new(&criterion_value)?),
-                    _ => return Err(ParseError {}),
+                    _ => return Err(parse_error(None)),
                 },
                 &&"username" => match criterion_check {
                     &&"contains" => Criterion::UsernameContains(criterion_value),
                     &&"regex" => Criterion::UsernameRegex(Regex::new(&criterion_value)?),
-                    _ => return Err(ParseError {}),
+                    _ => return Err(parse_error(None)),
                 },
                 &&"useragent" => match criterion_check {
                     &&"length-lte" => Criterion::UseragentLengthLte(criterion_value.parse()?),
-                    _ => return Err(ParseError {}),
+                    _ => return Err(parse_error(None)),
                 },
                 &&"lua" => Criterion::Lua(code.to_string()),
-                _ => return Err(ParseError {}),
+                _ => return Err(parse_error(None)),
             };
 
             let actions: Vec<Action> = args
@@ -96,7 +93,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 .collect();
 
             if actions.len() != args.get(8)?.split("+").count() {
-                return Err(ParseError {});
+                return Err(parse_error(None));
             }
 
             let no_delay = match args.get(9) {
@@ -164,7 +161,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
 
             Ok(None)
         }
-        _ => Err(ParseError {}),
+        _ => Err(parse_error(None)),
     }
 }
 
@@ -177,46 +174,52 @@ fn handle_external_command(command: &str) -> Result<Option<String>, ParseError> 
 }
 
 #[derive(Debug)]
-pub struct ParseError;
+pub struct ParseError {
+    pub message: String
+}
+
+fn parse_error(msg: Option<&str>) -> ParseError {
+    ParseError { message: msg.unwrap_or("Could not parse user command").to_owned() }
+}
 
 impl Error for ParseError {
     fn description(&self) -> &str {
-        "Could not parse user command"
+        self.message.as_ref()
     }
 }
 
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "Could not parse user command")
+        write!(f, "{}", self.message)
     }
 }
 
 impl From<std::option::NoneError> for ParseError {
     fn from(_: std::option::NoneError) -> Self {
-        ParseError {}
+        parse_error(Some("NoneError"))
     }
 }
 
 impl From<std::num::ParseIntError> for ParseError {
     fn from(_: std::num::ParseIntError) -> Self {
-        ParseError {}
+        parse_error(Some("Can't parse int"))
     }
 }
 
 impl From<regex::Error> for ParseError {
     fn from(_: regex::Error) -> Self {
-        ParseError {}
+        parse_error(Some("Invalid regex"))
     }
 }
 
 impl From<rlua::Error> for ParseError {
     fn from(_: rlua::Error) -> Self {
-        ParseError {}
+        parse_error(Some("Invalid lua"))
     }
 }
 
 impl From<serde_json::Error> for ParseError {
     fn from(_: serde_json::Error) -> Self {
-        ParseError {}
+        parse_error(Some("Can't (de)serialize"))
     }
 }

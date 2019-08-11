@@ -76,7 +76,7 @@ pub fn connect_to_slack(
                                             tx2.clone(),
                                         ) {
                                             Ok(s) => s,
-                                            Err(_) => Some("Failed to parse command.".to_owned()),
+                                            Err(e) => Some(e.message),
                                         };
                                         match text_reply {
                                             Some(reply) => {

@@ -32,12 +32,18 @@ pub struct User {
     pub ip: Ip,
     pub user_agent: UserAgent,
     pub finger_print: Option<FingerPrint>,
+    #[serde(default = "default_susp_ip")]
+    pub susp_ip: bool
 }
 
 impl User {
     pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(json)
     }
+}
+
+fn default_susp_ip() -> bool {
+    false
 }
 
 #[derive(Deserialize, PartialEq, Clone)]

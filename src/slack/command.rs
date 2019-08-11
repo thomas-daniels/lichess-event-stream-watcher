@@ -156,6 +156,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 finger_print: user_unpreprocessed.finger_print,
                 user_agent: user_unpreprocessed.user_agent,
                 email: Email(email_processed.to_string()),
+                susp_ip: false
             };
             tx.send(Event::InternalHypotheticalSignup(user)).unwrap();
 

@@ -51,6 +51,8 @@ pub fn handle_events(
                 for rule in &rule_manager.rules {
                     let take_action = if !rule.enabled {
                         Ok(false)
+                    } else if rule.susp_ip && !user.susp_ip {
+                        Ok(false)
                     } else {
                         rule.criterion.take_action(&user, &lua_state)
                     };

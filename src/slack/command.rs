@@ -1,9 +1,9 @@
 use event::{Email, Event, Ip, User};
 use regex::Regex;
+use serde_json;
 use signup::rules::{Action, Criterion, Rule};
 use std::error::Error;
 use std::sync::mpsc::Sender;
-use serde_json;
 
 pub fn handle_command(command: String, tx: Sender<Event>) -> Result<Option<String>, ParseError> {
     let cmd = command.clone();
@@ -109,7 +109,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 most_recent_caught: vec![],
                 no_delay,
                 enabled: true,
-                susp_ip: susp_ip
+                susp_ip: susp_ip,
             };
 
             tx.send(Event::InternalAddRule { rule }).unwrap();
@@ -148,14 +148,18 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
         &&"test" => {
             let user_unpreprocessed = User::from_json(code)?;
             let Email(email) = user_unpreprocessed.email;
-            let email_processed = email.split("|").collect::<Vec<&str>>().get(1)?.trim_matches('>');
+            let email_processed = email
+                .split("|")
+                .collect::<Vec<&str>>()
+                .get(1)?
+                .trim_matches('>');
             let user = User {
                 username: user_unpreprocessed.username,
                 ip: user_unpreprocessed.ip,
                 finger_print: user_unpreprocessed.finger_print,
                 user_agent: user_unpreprocessed.user_agent,
                 email: Email(email_processed.to_string()),
-                susp_ip: false
+                susp_ip: false,
             };
             tx.send(Event::InternalHypotheticalSignup(user)).unwrap();
 
@@ -175,11 +179,13 @@ fn handle_external_command(command: &str) -> Result<Option<String>, ParseError> 
 
 #[derive(Debug)]
 pub struct ParseError {
-    pub message: String
+    pub message: String,
 }
 
 fn parse_error(msg: Option<&str>) -> ParseError {
-    ParseError { message: msg.unwrap_or("Could not parse user command").to_owned() }
+    ParseError {
+        message: msg.unwrap_or("Could not parse user command").to_owned(),
+    }
 }
 
 impl Error for ParseError {

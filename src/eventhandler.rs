@@ -59,8 +59,12 @@ pub fn handle_events(
 
                     if hypothetical && take_action.clone().unwrap_or(false) {
                         slack::web::post_message(
-                            format!("Rule {} would take these actions: {:?}", &rule.name, &rule.actions),
-                            slack_token, slack_channel
+                            format!(
+                                "Rule {} would take these actions: {:?}",
+                                &rule.name, &rule.actions
+                            ),
+                            slack_token,
+                            slack_channel,
                         );
                     }
                     let take_real_action = if take_action.is_ok() {
@@ -94,12 +98,13 @@ pub fn handle_events(
                                                 || action.eq(&Action::BoostMark)
                                                 || action.eq(&Action::IpBan)
                                                 || action.eq(&Action::Close));
-                                        
-                                        let delay_additional = if !rule.no_delay && action.eq(&Action::Close) {
-                                            1500
-                                        } else {
-                                            0
-                                        };
+
+                                        let delay_additional =
+                                            if !rule.no_delay && action.eq(&Action::Close) {
+                                                1500
+                                            } else {
+                                                0
+                                            };
 
                                         tokio::spawn(future::lazy(move || {
                                             if delay {

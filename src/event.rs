@@ -33,7 +33,7 @@ pub struct User {
     pub user_agent: UserAgent,
     pub finger_print: Option<FingerPrint>,
     #[serde(default = "default_susp_ip")]
-    pub susp_ip: bool
+    pub susp_ip: bool,
 }
 
 impl User {

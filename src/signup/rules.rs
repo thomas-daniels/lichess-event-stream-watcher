@@ -96,7 +96,11 @@ impl SignupRulesManager {
             .collect()
     }
 
-    pub fn caught(&mut self, name: String, user: &Username) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn caught(
+        &mut self,
+        name: String,
+        user: &Username,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let index = self
             .rules
             .iter()

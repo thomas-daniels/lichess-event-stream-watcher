@@ -213,8 +213,8 @@ impl From<std::num::ParseIntError> for ParseError {
 }
 
 impl From<regex::Error> for ParseError {
-    fn from(_: regex::Error) -> Self {
-        parse_error(Some("Invalid regex"))
+    fn from(err: regex::Error) -> Self {
+        parse_error(Some(format!("Invalid regex: {:?}", err).as_ref()))
     }
 }
 

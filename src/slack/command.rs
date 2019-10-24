@@ -36,7 +36,15 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
     let split: Vec<&str> = joined.split(" ").collect();
     let args: Vec<&&str> = split.iter().skip(1).collect();
     if !args.get(0)?.eq(&&"rules") {
-        return Err(parse_error(None));
+        if args.get(0)?.eq(&&"seen") {
+            tx.send(Event::InternalIsRecentlyChecked(
+                (***args.get(1)?).to_owned(),
+            ))
+            .unwrap();
+            return Ok(None);
+        } else {
+            return Err(parse_error(None));
+        }
     }
 
     match args.get(1)? {

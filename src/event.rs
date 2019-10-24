@@ -16,6 +16,7 @@ pub enum Event {
     InternalListRules,
     InternalStreamEventReceived,
     InternalSlackStatusCommand,
+    InternalIsRecentlyChecked(String),
 }
 
 impl Event {

@@ -31,6 +31,7 @@ pub fn handle_events(
     let lua_state = lua::new_lua();
 
     let mut recently_notified: Vec<String> = vec![];
+    let mut recently_checked: Vec<String> = vec![];
 
     loop {
         let event = rx.recv().unwrap();
@@ -43,6 +44,11 @@ pub fn handle_events(
                     Event::InternalHypotheticalSignup(_) => true,
                     _ => panic!("This is impossible."),
                 };
+
+                recently_checked.insert(0, user.username.0.to_lowercase());
+                if recently_checked.len() > 10000 {
+                    recently_checked.pop();
+                }
 
                 let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;
 
@@ -264,6 +270,15 @@ pub fn handle_events(
                     "I am alive! Latest event: (UTC) {}",
                     latest_event_utc.format("%d/%m/%Y %T")
                 ),
+                slack_token,
+                slack_channel,
+            ),
+            Event::InternalIsRecentlyChecked(username) => slack::web::post_message(
+                if recently_checked.contains(&username.to_lowercase()) {
+                    "Yes, that user has been seen in the latest 10K sign-ins.".to_string()
+                } else {
+                    "No, that user has not been seen in the latest 10K sign-ins.".to_string()
+                },
                 slack_token,
                 slack_channel,
             ),

@@ -9,6 +9,7 @@ use lua;
 use rand::{thread_rng, Rng};
 use signup::rules::*;
 use slack;
+use std::collections::VecDeque;
 use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time;
@@ -31,7 +32,7 @@ pub fn handle_events(
     let lua_state = lua::new_lua();
 
     let mut recently_notified: Vec<String> = vec![];
-    let mut recently_checked: Vec<String> = vec![];
+    let mut recently_checked: VecDeque<String> = VecDeque::new();
 
     loop {
         let event = rx.recv().unwrap();
@@ -45,9 +46,9 @@ pub fn handle_events(
                     _ => panic!("This is impossible."),
                 };
 
-                recently_checked.insert(0, user.username.0.to_lowercase());
+                recently_checked.push_back(user.username.0.to_lowercase());
                 if recently_checked.len() > 10000 {
-                    recently_checked.pop();
+                    recently_checked.pop_front();
                 }
 
                 let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;

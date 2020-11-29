@@ -69,6 +69,7 @@ pub fn connect_to_slack(
                             Ok(message) => match message {
                                 RtmRecv::Message { text, channel, .. } => {
                                     status_tx2.send(StatusPing::SlackPingReceived).unwrap();
+                                    let text = text.replace(160u8 as char, " ");
                                     if text.starts_with(&bot_ping) && channel.eq(listen_channel) {
                                         id += 1;
                                         let text_reply = match handle_command(

@@ -8,7 +8,7 @@ use std::sync::mpsc::Sender;
 pub fn handle_command(command: String, tx: Sender<Event>) -> Result<Option<String>, ParseError> {
     let cmd = command.clone();
     let parts: Vec<&str> = cmd.split(" ").collect();
-    match parts.get(0)? {
+    match parts.get(0).ok_or(parse_error(None))? {
         &"status" => handle_status_command(tx.clone()),
         &"signup" => handle_signup_command(command, tx.clone()),
         &"upgrade" => handle_external_command("./upgrade"),
@@ -26,7 +26,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
     let mut first_split: Vec<&str> = command.split("`").collect();
     let mut code = "";
     if first_split.len() > 2 {
-        code = first_split.get(1)?.clone();
+        code = first_split.get(1).ok_or(parse_error(None))?.clone();
         first_split[0] = first_split[0].trim();
         first_split[1] = "$ $";
         first_split[2] = first_split[2].trim();
@@ -35,10 +35,10 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
     let joined = first_split.join(" ");
     let split: Vec<&str> = joined.split(" ").collect();
     let args: Vec<&&str> = split.iter().skip(1).collect();
-    if !args.get(0)?.eq(&&"rules") {
-        if args.get(0)?.eq(&&"seen") {
+    if !args.get(0).ok_or(parse_error(None))?.eq(&&"rules") {
+        if args.get(0).ok_or(parse_error(None))?.eq(&&"seen") {
             tx.send(Event::InternalIsRecentlyChecked(
-                (***args.get(1)?).to_owned(),
+                (***args.get(1).ok_or(parse_error(None))?).to_owned(),
             ))
             .unwrap();
             return Ok(None);
@@ -47,18 +47,21 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
         }
     }
 
-    match args.get(1)? {
+    match args.get(1).ok_or(parse_error(None))? {
         &&"add" => {
-            let susp_ip = args.get(3)?.eq(&&"if_susp_ip") || args.get(3)?.eq(&&"if_ip_susp");
-            if !(args.get(3)?.eq(&&"if") || susp_ip) || !args.get(7)?.eq(&&"then") {
+            let susp_ip = args.get(3).ok_or(parse_error(None))?.eq(&&"if_susp_ip")
+                || args.get(3).ok_or(parse_error(None))?.eq(&&"if_ip_susp");
+            if !(args.get(3).ok_or(parse_error(None))?.eq(&&"if") || susp_ip)
+                || !args.get(7).ok_or(parse_error(None))?.eq(&&"then")
+            {
                 return Err(parse_error(None));
             }
 
-            let name: String = (***args.get(2)?).to_owned();
+            let name: String = (***args.get(2).ok_or(parse_error(None))?).to_owned();
 
-            let criterion_element = args.get(4)?;
-            let criterion_check = args.get(5)?;
-            let criterion_value: String = (***args.get(6)?).to_owned();
+            let criterion_element = args.get(4).ok_or(parse_error(None))?;
+            let criterion_check = args.get(5).ok_or(parse_error(None))?;
+            let criterion_value: String = (***args.get(6).ok_or(parse_error(None))?).to_owned();
 
             let criterion = match criterion_element {
                 &&"ip" => match criterion_check {
@@ -85,7 +88,8 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
             };
 
             let actions: Vec<Action> = args
-                .get(8)?
+                .get(8)
+                .ok_or(parse_error(None))?
                 .split("+")
                 .map(|one| match one {
                     "shadowban" => Some(Action::Shadowban),
@@ -101,7 +105,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 .flatten()
                 .collect();
 
-            if actions.len() != args.get(8)?.split("+").count() {
+            if actions.len() != args.get(8).ok_or(parse_error(None))?.split("+").count() {
                 return Err(parse_error(None));
             }
 
@@ -126,26 +130,34 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
             Ok(None)
         }
         &&"show" => {
-            tx.send(Event::InternalShowRule((***args.get(2)?).to_owned()))
-                .unwrap();
+            tx.send(Event::InternalShowRule(
+                (***args.get(2).ok_or(parse_error(None))?).to_owned(),
+            ))
+            .unwrap();
 
             Ok(None)
         }
         &&"remove" => {
-            tx.send(Event::InternalRemoveRule((***args.get(2)?).to_owned()))
-                .unwrap();
+            tx.send(Event::InternalRemoveRule(
+                (***args.get(2).ok_or(parse_error(None))?).to_owned(),
+            ))
+            .unwrap();
 
             Ok(None)
         }
         &&"disable-re" => {
-            tx.send(Event::InternalDisableRules((***args.get(2)?).to_owned()))
-                .unwrap();
+            tx.send(Event::InternalDisableRules(
+                (***args.get(2).ok_or(parse_error(None))?).to_owned(),
+            ))
+            .unwrap();
 
             Ok(None)
         }
         &&"enable-re" => {
-            tx.send(Event::InternalEnableRules((***args.get(2)?).to_owned()))
-                .unwrap();
+            tx.send(Event::InternalEnableRules(
+                (***args.get(2).ok_or(parse_error(None))?).to_owned(),
+            ))
+            .unwrap();
 
             Ok(None)
         }
@@ -160,7 +172,8 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
             let email_processed = email
                 .split("|")
                 .collect::<Vec<&str>>()
-                .get(1)?
+                .get(1)
+                .ok_or(parse_error(None))?
                 .trim_matches('>');
             let user = User {
                 username: user_unpreprocessed.username,
@@ -206,12 +219,6 @@ impl Error for ParseError {
 impl std::fmt::Display for ParseError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.message)
-    }
-}
-
-impl From<std::option::NoneError> for ParseError {
-    fn from(_: std::option::NoneError) -> Self {
-        parse_error(Some("NoneError"))
     }
 }
 

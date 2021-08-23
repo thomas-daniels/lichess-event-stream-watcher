@@ -1,5 +1,3 @@
-#![feature(try_trait)]
-
 extern crate chrono;
 extern crate futures;
 extern crate hyper;

@@ -119,7 +119,7 @@ pub fn connect_to_zulip(
                                                     .get("content")
                                                     .and_then(|c| c.as_str())
                                                     .unwrap_or("");
-                                                println!("{}", &text);
+
                                                 if text.starts_with(&bot_ping2)
                                                     && message.get("display_recipient")
                                                         == Some(&serde_json::Value::String(

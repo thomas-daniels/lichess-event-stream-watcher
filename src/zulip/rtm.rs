@@ -4,7 +4,7 @@ use futures::future::Loop;
 use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Method, Request};
-use hyper_tls::HttpsConnector;
+use hyper_rustls::HttpsConnector;
 use serde_json;
 use status::StatusPing;
 use std::sync::mpsc::Sender;
@@ -21,7 +21,7 @@ pub fn connect_to_zulip(
     status_tx: Sender<StatusPing>,
 ) {
     tokio::spawn(future::lazy(move || {
-        let https = HttpsConnector::new(2).unwrap();
+        let https = HttpsConnector::new(2);
         let client = Client::builder().build::<_, Body>(https);
 
         let mut req = Request::new(Body::from(""));

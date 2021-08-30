@@ -2,7 +2,7 @@ use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::Future;
 use hyper::{Body, Client, Method, Request};
-use hyper_tls::HttpsConnector;
+use hyper_rustls::HttpsConnector;
 use tokio;
 use urlencoding::encode;
 
@@ -15,7 +15,7 @@ pub fn post_message(
     zulip_url: &'static str,
 ) {
     tokio::spawn(future::lazy(move || {
-        let https = HttpsConnector::new(2).unwrap();
+        let https = HttpsConnector::new(2);
         let client = Client::builder().build::<_, Body>(https);
 
         let mut req = Request::new(Body::from(""));

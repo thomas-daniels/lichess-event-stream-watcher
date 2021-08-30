@@ -6,7 +6,7 @@ use futures::future::Loop;
 use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
-use hyper_tls::HttpsConnector;
+use hyper_rustls::HttpsConnector;
 use status::StatusPing;
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -14,7 +14,7 @@ use std::time::SystemTime;
 
 pub fn watch_event_stream(tx: Sender<Event>, token: &'static str, status_tx: Sender<StatusPing>) {
     tokio::spawn(future::loop_fn((), move |_| {
-        let https = HttpsConnector::new(2).unwrap();
+        let https = HttpsConnector::new(2);
         let client = Client::builder().build::<_, Body>(https);
 
         let mut req = Request::new(Body::from(""));

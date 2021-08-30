@@ -4,7 +4,7 @@ use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::Future;
 use hyper::{Body, Client, Method, Request};
-use hyper_tls::HttpsConnector;
+use hyper_rustls::HttpsConnector;
 use lua;
 use rand::{thread_rng, Rng};
 use signup::rules::*;
@@ -104,7 +104,7 @@ pub fn handle_events(
                                             HeaderValue::from_str(&bearer).unwrap(),
                                         );
 
-                                        let https = HttpsConnector::new(1).unwrap();
+                                        let https = HttpsConnector::new(1);
                                         let client = Client::builder().build::<_, Body>(https);
 
                                         let delay = !rule.no_delay

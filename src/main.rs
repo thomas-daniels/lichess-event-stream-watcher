@@ -2,7 +2,7 @@ extern crate base64;
 extern crate chrono;
 extern crate futures;
 extern crate hyper;
-extern crate hyper_tls;
+extern crate hyper_rustls;
 extern crate rand;
 extern crate tokio;
 extern crate url;

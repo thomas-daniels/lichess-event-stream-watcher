@@ -9,7 +9,10 @@ impl UserData for User {
         methods.add_method("name", |_, this, _: ()| Ok(this.username.0.clone()));
         methods.add_method("email", |_, this, _: ()| Ok(this.email.0.clone()));
         methods.add_method("ip", |_, this, _: ()| Ok(this.ip.0.clone()));
-        methods.add_method("ua", |_, this, _: ()| Ok(this.user_agent.0.clone()));
+        methods.add_method("ua", |_, this, _: ()| match this.user_agent {
+            Some(ref ua) => Ok(ua.0.clone()),
+            None => Ok(String::from("no user agent detected")),
+        });
         methods.add_method("fp", |_, this, _: ()| match this.finger_print {
             Some(ref fp) => Ok(fp.0.clone()),
             None => Ok(String::from("<NO PRINT>")),

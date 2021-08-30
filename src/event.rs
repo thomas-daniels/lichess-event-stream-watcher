@@ -31,7 +31,7 @@ pub struct User {
     pub username: Username,
     pub email: Email,
     pub ip: Ip,
-    pub user_agent: UserAgent,
+    pub user_agent: Option<UserAgent>,
     pub finger_print: Option<FingerPrint>,
     #[serde(default = "default_susp_ip")]
     pub susp_ip: bool,

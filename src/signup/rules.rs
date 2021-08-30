@@ -197,7 +197,10 @@ impl Criterion {
                 .to_uppercase()
                 .contains(&part.to_uppercase()),
             Criterion::UsernameRegex(re) => re.is_match(&user.username.0),
-            Criterion::UseragentLengthLte(len) => user.user_agent.0.len() <= *len,
+            Criterion::UseragentLengthLte(len) => match user.user_agent {
+                None => false,
+                Some(ref ua) => ua.0.len() <= *len,
+            },
             Criterion::Lua(code) => lua::call_constraints_function(code, user.clone(), lua_state)?,
         })
     }

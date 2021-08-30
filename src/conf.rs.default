@@ -1,6 +1,10 @@
 pub const TOKEN: &'static str = "Lichess API token";
 pub const RULES_PATH: &'static str = "rules/rules.json";
-pub const SLACK_BOT_TOKEN: &'static str = "Slack bot token";
-pub const SLACK_BOT_USER_ID: &'static str = "Slack bot user ID";
-pub const SLACK_CHANNEL: &'static str = "Slack channel ID";
-pub const SLACK_NOTIFY_CHANNEL: &'static str = "Slack channel ID for notify actions";
+pub const ZULIP_BOT_TOKEN: &'static str = "Zulip bot token";
+pub const ZULIP_BOT_ID: &'static str = "Zulip bot ID (that email address thing)"
+pub const ZULIP_BOT_USERNAME: &'static str = "Zulip bot username";
+pub const ZULIP_MAIN_STREAM: &'static str = "Zulip main stream ID";
+pub const ZULIP_MAIN_TOPIC: &'static str = "Zulip topic in main stream";
+pub const ZULIP_NOTIFY_STREAM: &'static str = "Zulip notify stream ID";
+pub const ZULIP_NOTIFY_TOPIC: &'static str = "Zulip topic in notify stream";
+pub const ZULIP_URL: &'static str = "Zulip instance URL";

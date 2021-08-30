@@ -18,7 +18,7 @@ pub fn handle_command(command: String, tx: Sender<Event>) -> Result<Option<Strin
 }
 
 fn handle_status_command(tx: Sender<Event>) -> Result<Option<String>, ParseError> {
-    tx.send(Event::InternalSlackStatusCommand).unwrap();
+    tx.send(Event::InternalZulipStatusCommand).unwrap();
     Ok(None)
 }
 

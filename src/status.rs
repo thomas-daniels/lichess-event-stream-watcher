@@ -3,17 +3,17 @@ use event::Event;
 use eventstream;
 use futures::future::{self, loop_fn, Loop};
 use futures::Future;
-use slack;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::{Duration, Instant};
 use tokio;
 use tokio::timer::Delay;
+use zulip;
 
 pub enum StatusPing {
     StreamEventReceived,
     EnsureAliveConnectionLichess,
-    EnsureAliveConnectionSlack,
-    SlackPingReceived,
+    EnsureAliveConnectionZulip,
+    ZulipPingReceived,
 }
 
 pub fn status_loop(
@@ -24,38 +24,41 @@ pub fn status_loop(
 ) {
     tokio::spawn(future::loop_fn(
         (Instant::now(), Instant::now()),
-        move |(latest_stream_event, latest_slack_event)| {
+        move |(latest_stream_event, latest_zulip_event)| {
             let ping = rx.recv().unwrap();
 
             match ping {
                 StatusPing::StreamEventReceived => {
-                    Ok(Loop::Continue((Instant::now(), latest_slack_event)))
+                    Ok(Loop::Continue((Instant::now(), latest_zulip_event)))
                 }
                 StatusPing::EnsureAliveConnectionLichess => {
                     if latest_stream_event.elapsed().as_secs() > 90 {
                         eventstream::watch_event_stream(main_tx.clone(), token, status_tx.clone());
                         println!("Event stream watcher restarted.");
-                        Ok(Loop::Continue((Instant::now(), latest_slack_event)))
+                        Ok(Loop::Continue((Instant::now(), latest_zulip_event)))
                     } else {
-                        Ok(Loop::Continue((latest_stream_event, latest_slack_event)))
+                        Ok(Loop::Continue((latest_stream_event, latest_zulip_event)))
                     }
                 }
-                StatusPing::SlackPingReceived => {
+                StatusPing::ZulipPingReceived => {
                     Ok(Loop::Continue((latest_stream_event, Instant::now())))
                 }
-                StatusPing::EnsureAliveConnectionSlack => {
-                    if latest_slack_event.elapsed().as_secs() > 720 {
-                        slack::rtm::connect_to_slack(
-                            conf::SLACK_BOT_TOKEN,
-                            conf::SLACK_BOT_USER_ID,
-                            conf::SLACK_CHANNEL,
+                StatusPing::EnsureAliveConnectionZulip => {
+                    if latest_zulip_event.elapsed().as_secs() > 720 {
+                        zulip::rtm::connect_to_zulip(
+                            conf::ZULIP_URL,
+                            conf::ZULIP_BOT_TOKEN,
+                            conf::ZULIP_BOT_ID,
+                            conf::ZULIP_BOT_USERNAME,
+                            conf::ZULIP_MAIN_STREAM,
+                            conf::ZULIP_MAIN_TOPIC,
                             main_tx.clone(),
                             status_tx.clone(),
                         );
                         println!("Slack connection restarted.");
-                        Ok(Loop::Continue((latest_stream_event, Instant::now())))
+                        Ok(Loop::Continue((latest_stream_event, latest_zulip_event)))
                     } else {
-                        Ok(Loop::Continue((latest_stream_event, latest_slack_event)))
+                        Ok(Loop::Continue((latest_stream_event, latest_zulip_event)))
                     }
                 }
             }
@@ -72,7 +75,7 @@ pub fn periodically_ensure_alive_connection(status_tx: Sender<StatusPing>) {
                     .send(StatusPing::EnsureAliveConnectionLichess)
                     .unwrap();
                 status_tx2
-                    .send(StatusPing::EnsureAliveConnectionSlack)
+                    .send(StatusPing::EnsureAliveConnectionZulip)
                     .unwrap();
                 Ok(Loop::Continue(()))
             })

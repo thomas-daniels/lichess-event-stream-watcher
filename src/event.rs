@@ -15,7 +15,7 @@ pub enum Event {
     InternalEnableRules(String),
     InternalListRules,
     InternalStreamEventReceived,
-    InternalSlackStatusCommand,
+    InternalZulipStatusCommand,
     InternalIsRecentlyChecked(String),
 }
 

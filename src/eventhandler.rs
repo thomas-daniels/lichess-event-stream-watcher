@@ -8,20 +8,24 @@ use hyper_tls::HttpsConnector;
 use lua;
 use rand::{thread_rng, Rng};
 use signup::rules::*;
-use slack;
 use std::collections::VecDeque;
 use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time;
 use tokio;
+use zulip;
 
 pub fn handle_events(
     rx: Receiver<Event>,
     token: &'static str,
     rules_path: &'static str,
-    slack_token: &'static str,
-    slack_channel: &'static str,
-    slack_notify_channel: &'static str,
+    zulip_bot_id: &'static str,
+    zulip_bot_token: &'static str,
+    zulip_main_stream: &'static str,
+    zulip_main_topic: &'static str,
+    zulip_notify_stream: &'static str,
+    zulip_notify_topic: &'static str,
+    zulip_url: &'static str,
 ) {
     let mut rule_manager =
         SignupRulesManager::new(rules_path.to_string()).expect("could not load rules");
@@ -65,13 +69,16 @@ pub fn handle_events(
                     };
 
                     if hypothetical && take_action.clone().unwrap_or(false) {
-                        slack::web::post_message(
+                        zulip::web::post_message(
                             format!(
                                 "Rule {} would take these actions: {:?}",
                                 &rule.name, &rule.actions
                             ),
-                            slack_token,
-                            slack_channel,
+                            zulip_bot_id,
+                            zulip_bot_token,
+                            zulip_main_stream,
+                            zulip_main_topic,
+                            zulip_url,
                         );
                     }
                     let take_real_action = if take_action.is_ok() {
@@ -132,13 +139,16 @@ pub fn handle_events(
                                         if action.eq(&Action::NotifySlack)
                                             && !recently_notified.contains(&user.username.0)
                                         {
-                                            slack::web::post_message(
+                                            zulip::web::post_message(
                                                 format!(
                                                     "Rule {} match: https://lichess.org/@/{}",
                                                     &rule.name, &user.username.0
                                                 ),
-                                                slack_token,
-                                                slack_notify_channel,
+                                                zulip_bot_id,
+                                                zulip_bot_token,
+                                                zulip_notify_stream,
+                                                zulip_notify_topic,
+                                                zulip_url,
                                             );
 
                                             recently_notified.insert(0, user.username.0.clone());
@@ -153,7 +163,7 @@ pub fn handle_events(
                             if rule.actions.len() > 1
                                 || !rule.actions.get(0).eq(&Some(&Action::NotifySlack))
                             {
-                                slack::web::post_message(
+                                zulip::web::post_message(
                                     format!(
                                         "Rule {} match: \
                                          {} on <https://lichess.org/@/{}?mod|{}>. \
@@ -179,8 +189,11 @@ pub fn handle_events(
                                                 .join(", ")
                                         }
                                     ),
-                                    slack_token,
-                                    slack_channel,
+                                    zulip_bot_id,
+                                    zulip_bot_token,
+                                    zulip_main_stream,
+                                    zulip_main_topic,
+                                    zulip_url,
                                 );
                             }
                         }
@@ -191,7 +204,14 @@ pub fn handle_events(
                                 &rule.name, &user.username.0, err
                             );
                             println!("{}", err_msg.clone());
-                            slack::web::post_message(err_msg, slack_token, slack_channel);
+                            zulip::web::post_message(
+                                err_msg,
+                                zulip_bot_id,
+                                zulip_bot_token,
+                                zulip_main_stream,
+                                zulip_main_topic,
+                                zulip_url,
+                            );
                         }
                     }
                 }
@@ -208,18 +228,28 @@ pub fn handle_events(
             Event::InternalAddRule { rule } => match rule_manager.add_rule(rule) {
                 Err(err) => {
                     println!("Error on .add_rule: {}", err);
-                    slack::web::post_message(
+                    zulip::web::post_message(
                         format!("Error on adding rule: {}", err),
-                        slack_token,
-                        slack_channel,
+                        zulip_bot_id,
+                        zulip_bot_token,
+                        zulip_main_stream,
+                        zulip_main_topic,
+                        zulip_url,
                     );
                 }
                 Ok(_) => {
-                    slack::web::post_message("Rule added!".to_owned(), slack_token, slack_channel);
+                    zulip::web::post_message(
+                        "Rule added!".to_owned(),
+                        zulip_bot_id,
+                        zulip_bot_token,
+                        zulip_main_stream,
+                        zulip_main_topic,
+                        zulip_url,
+                    );
                 }
             },
             Event::InternalShowRule(name) => {
-                let slack_message = match rule_manager.find_rule(name) {
+                let zulip_message = match rule_manager.find_rule(name) {
                     None => "No such rule found.".to_owned(),
                     Some(rule) => format!(
                         "Criterion: {}.\nActions: {:?}{}",
@@ -228,10 +258,17 @@ pub fn handle_events(
                         if rule.no_delay { ". No delay." } else { "" }
                     ),
                 };
-                slack::web::post_message(slack_message, slack_token, slack_channel);
+                zulip::web::post_message(
+                    zulip_message,
+                    zulip_bot_id,
+                    zulip_bot_token,
+                    zulip_main_stream,
+                    zulip_main_topic,
+                    zulip_url,
+                );
             }
             Event::InternalRemoveRule(name) => {
-                let slack_message = match rule_manager.remove_rule(name) {
+                let zulip_message = match rule_manager.remove_rule(name) {
                     Ok(removed) => {
                         if removed {
                             "Rule removed!".to_owned()
@@ -244,44 +281,74 @@ pub fn handle_events(
                         format!("Error on removing rule: {}", err)
                     }
                 };
-                slack::web::post_message(slack_message, slack_token, slack_channel);
+                zulip::web::post_message(
+                    zulip_message,
+                    zulip_bot_id,
+                    zulip_bot_token,
+                    zulip_main_stream,
+                    zulip_main_topic,
+                    zulip_url,
+                );
             }
             Event::InternalDisableRules(pattern) => {
-                let slack_message = match rule_manager.disable_rules(pattern) {
+                let zulip_message = match rule_manager.disable_rules(pattern) {
                     Ok(count) => format!("{} rules disabled.", count),
                     Err(err) => format!("Error on disabling rules: {}", err),
                 };
-                slack::web::post_message(slack_message, slack_token, slack_channel);
+                zulip::web::post_message(
+                    zulip_message,
+                    zulip_bot_id,
+                    zulip_bot_token,
+                    zulip_main_stream,
+                    zulip_main_topic,
+                    zulip_url,
+                );
             }
             Event::InternalEnableRules(pattern) => {
-                let slack_message = match rule_manager.enable_rules(pattern) {
+                let zulip_message = match rule_manager.enable_rules(pattern) {
                     Ok(count) => format!("{} rules enabled.", count),
                     Err(err) => format!("Error on enabling rules: {}", err),
                 };
-                slack::web::post_message(slack_message, slack_token, slack_channel);
+                zulip::web::post_message(
+                    zulip_message,
+                    zulip_bot_id,
+                    zulip_bot_token,
+                    zulip_main_stream,
+                    zulip_main_topic,
+                    zulip_url,
+                );
             }
-            Event::InternalListRules => slack::web::post_message(
+            Event::InternalListRules => zulip::web::post_message(
                 format!("Current rules: {}", rule_manager.list_names().join(", ")),
-                slack_token,
-                slack_channel,
+                zulip_bot_id,
+                zulip_bot_token,
+                zulip_main_stream,
+                zulip_main_topic,
+                zulip_url,
             ),
             Event::InternalStreamEventReceived => latest_event_utc = Utc::now(),
-            Event::InternalSlackStatusCommand => slack::web::post_message(
+            Event::InternalZulipStatusCommand => zulip::web::post_message(
                 format!(
                     "I am alive! Latest event: (UTC) {}",
                     latest_event_utc.format("%d/%m/%Y %T")
                 ),
-                slack_token,
-                slack_channel,
+                zulip_bot_id,
+                zulip_bot_token,
+                zulip_main_stream,
+                zulip_main_topic,
+                zulip_url,
             ),
-            Event::InternalIsRecentlyChecked(username) => slack::web::post_message(
+            Event::InternalIsRecentlyChecked(username) => zulip::web::post_message(
                 if recently_checked.contains(&username.to_lowercase()) {
                     "Yes, that user has been seen in the latest 10K sign-ins.".to_string()
                 } else {
                     "No, that user has not been seen in the latest 10K sign-ins.".to_string()
                 },
-                slack_token,
-                slack_channel,
+                zulip_bot_id,
+                zulip_bot_token,
+                zulip_main_stream,
+                zulip_main_topic,
+                zulip_url,
             ),
         }
     }

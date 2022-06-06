@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["ProgramFOX <programfox@hotmail.be>"]
 
 [dependencies]
-hyper = "0.12"
+hyper = "0.14"
 hyper-rustls = "0.18"
 tokio = "0.1.7"
 futures = "0.1.21"

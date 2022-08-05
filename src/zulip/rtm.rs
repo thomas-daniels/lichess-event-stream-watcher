@@ -151,6 +151,10 @@ pub fn connect_to_zulip(
                                                         _ => {}
                                                     }
                                                 }
+
+                                                status_tx2
+                                                    .send(StatusPing::ZulipPingReceived)
+                                                    .unwrap();
                                             }
                                             Some("heartbeat") => {
                                                 status_tx2

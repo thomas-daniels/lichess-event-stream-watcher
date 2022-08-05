@@ -8,12 +8,14 @@ use hyper_rustls::HttpsConnector;
 use lua;
 use rand::{thread_rng, Rng};
 use signup::rules::*;
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time;
 use tokio;
 use zulip;
+
+use crate::event::User;
 
 pub fn handle_events(
     rx: Receiver<Event>,
@@ -37,6 +39,7 @@ pub fn handle_events(
 
     let mut recently_notified: Vec<String> = vec![];
     let mut recently_checked: VecDeque<String> = VecDeque::new();
+    let mut recently_checked_info: HashMap<String, VecDeque<User>> = HashMap::new();
 
     loop {
         let event = rx.recv().unwrap();
@@ -50,9 +53,28 @@ pub fn handle_events(
                     _ => panic!("This is impossible."),
                 };
 
-                recently_checked.push_back(user.username.0.to_lowercase());
+                let user_id = user.username.0.to_lowercase();
+                recently_checked.push_back(user_id.clone());
+
+                if !recently_checked_info.contains_key(&user_id) {
+                    recently_checked_info.insert(user_id.clone(), VecDeque::new());
+                }
+                recently_checked_info
+                    .get_mut(&user_id)
+                    .unwrap()
+                    .push_back(user.clone());
+
                 if recently_checked.len() > 10000 {
-                    recently_checked.pop_front();
+                    let popped = recently_checked.pop_front().unwrap();
+                    recently_checked_info
+                        .get_mut(&popped)
+                        .map(|v| v.pop_front());
+                    if recently_checked_info
+                        .get(&popped)
+                        .eq(&Some(&VecDeque::new()))
+                    {
+                        recently_checked_info.remove(&popped);
+                    }
                 }
 
                 let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;
@@ -340,7 +362,16 @@ pub fn handle_events(
             ),
             Event::InternalIsRecentlyChecked(username) => zulip::web::post_message(
                 if recently_checked.contains(&username.to_lowercase()) {
-                    "Yes, that user has been seen in the latest 10K sign-ins.".to_string()
+                    let empty_vec = VecDeque::new();
+                    let infos = recently_checked_info
+                        .get(&username.to_lowercase())
+                        .unwrap_or(&empty_vec);
+                    let info_string = infos
+                        .into_iter()
+                        .map(|i| String::from("`") + &serde_json::to_string(i).unwrap() + "`")
+                        .collect::<Vec<String>>()
+                        .join("\n");
+                    format!("Yes, that user has been seen in the latest 10K sign-ins. Seen {} times:\n{}", infos.len(), info_string)
                 } else {
                     "No, that user has not been seen in the latest 10K sign-ins.".to_string()
                 },

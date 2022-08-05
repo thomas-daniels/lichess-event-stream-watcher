@@ -25,7 +25,7 @@ impl Event {
     }
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub username: Username,
@@ -47,17 +47,17 @@ fn default_susp_ip() -> bool {
     false
 }
 
-#[derive(Deserialize, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub struct Username(pub String);
 
-#[derive(Deserialize, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub struct Email(pub String);
 
-#[derive(Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct Ip(pub String);
 
-#[derive(Deserialize, PartialEq, Clone)]
+#[derive(Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub struct UserAgent(pub String);
 
-#[derive(Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct FingerPrint(pub String);

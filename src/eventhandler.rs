@@ -26,8 +26,8 @@ pub fn handle_events(
     zulip_bot_token: &'static str,
     zulip_main_stream: &'static str,
     zulip_main_topic: &'static str,
-    zulip_notify_stream: &'static str,
-    zulip_notify_topic: &'static str,
+    zulip_log_stream: &'static str,
+    zulip_log_topic: &'static str,
     zulip_url: &'static str,
 ) {
     let mut rule_manager =
@@ -170,8 +170,8 @@ pub fn handle_events(
                                                 ),
                                                 zulip_bot_id,
                                                 zulip_bot_token,
-                                                zulip_notify_stream,
-                                                zulip_notify_topic,
+                                                zulip_main_stream,
+                                                zulip_main_topic,
                                                 zulip_url,
                                             );
 
@@ -215,8 +215,8 @@ pub fn handle_events(
                                     ),
                                     zulip_bot_id,
                                     zulip_bot_token,
-                                    zulip_main_stream,
-                                    zulip_main_topic,
+                                    zulip_log_stream,
+                                    zulip_log_topic,
                                     zulip_url,
                                 );
                             }
@@ -402,8 +402,8 @@ pub fn handle_events(
                                 ),
                                 zulip_bot_id,
                                 zulip_bot_token,
-                                zulip_notify_stream,
-                                zulip_notify_topic,
+                                zulip_main_stream,
+                                zulip_main_topic,
                                 zulip_url,
                             );
                             rule.exp_notification = 1;
@@ -412,8 +412,8 @@ pub fn handle_events(
                                 format!("Notice: rule `{}` has expired", rule.name),
                                 zulip_bot_id,
                                 zulip_bot_token,
-                                zulip_notify_stream,
-                                zulip_notify_topic,
+                                zulip_main_stream,
+                                zulip_main_topic,
                                 zulip_url,
                             );
                             rule.exp_notification = 2;
@@ -430,8 +430,8 @@ pub fn handle_events(
                         format!("Error while saving in InternalCheckRulesExpiry: {:?}", e),
                         zulip_bot_id,
                         zulip_bot_token,
-                        zulip_notify_stream,
-                        zulip_notify_topic,
+                        zulip_main_stream,
+                        zulip_main_topic,
                         zulip_url,
                     );
                 }
@@ -442,8 +442,8 @@ pub fn handle_events(
                             format!("Error while automatically removing expired rule: {:?}", e),
                             zulip_bot_id,
                             zulip_bot_token,
-                            zulip_notify_stream,
-                            zulip_notify_topic,
+                            zulip_main_stream,
+                            zulip_main_topic,
                             zulip_url,
                         );
                     }

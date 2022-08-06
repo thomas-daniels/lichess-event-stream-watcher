@@ -60,8 +60,8 @@ fn main() {
             conf::ZULIP_BOT_TOKEN,
             conf::ZULIP_MAIN_STREAM,
             conf::ZULIP_MAIN_TOPIC,
-            conf::ZULIP_NOTIFY_STREAM,
-            conf::ZULIP_NOTIFY_TOPIC,
+            conf::ZULIP_LOG_STREAM,
+            conf::ZULIP_LOG_TOPIC,
             conf::ZULIP_URL,
         );
 

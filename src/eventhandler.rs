@@ -79,7 +79,7 @@ pub fn handle_events(
                     }
                 }
 
-                let delay_ms_if_needed = thread_rng().gen_range(30, 180) * 1000;
+                let delay_ms_if_needed = thread_rng().gen_range(30..100) * 1000;
 
                 let mut matched_rules: Vec<String> = vec![];
 

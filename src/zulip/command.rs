@@ -12,8 +12,6 @@ pub fn handle_command(command: String, tx: Sender<Event>) -> Result<Option<Strin
     match parts.get(0).ok_or(parse_error(None))? {
         &"status" => handle_status_command(tx.clone()),
         &"signup" => handle_signup_command(command, tx.clone()),
-        &"upgrade" => handle_external_command("./upgrade"),
-        &"restart" => handle_external_command("./restart"),
         _ => Err(parse_error(None)),
     }
 }
@@ -232,14 +230,6 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
             Ok(None)
         }
         _ => Err(parse_error(None)),
-    }
-}
-
-fn handle_external_command(command: &str) -> Result<Option<String>, ParseError> {
-    println!("handle_external_command called");
-    match std::process::Command::new(command).output() {
-        Ok(_) => Ok(None),
-        Err(_) => Ok(Some(String::from("Failed executing command."))),
     }
 }
 

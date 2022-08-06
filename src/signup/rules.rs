@@ -174,7 +174,7 @@ pub struct Rule {
     pub enabled: bool,
     #[serde(default = "default_ip_susp")]
     pub susp_ip: bool,
-    #[serde(with = "ts_milliseconds_option")]
+    #[serde(with = "ts_milliseconds_option", default = "default_expiry")]
     pub expiry: Option<chrono::DateTime<Utc>>,
     #[serde(default = "default_exp_notification")]
     pub exp_notification: u8,
@@ -201,6 +201,10 @@ fn default_ip_susp() -> bool {
 
 fn default_exp_notification() -> u8 {
     0
+}
+
+fn default_expiry() -> Option<DateTime<Utc>> {
+    None
 }
 
 impl Rule {

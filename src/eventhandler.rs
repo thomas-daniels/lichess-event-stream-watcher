@@ -1,4 +1,4 @@
-use chrono::prelude::*;
+use chrono::{prelude::*, Duration};
 use event::Event;
 use futures::future;
 use hyper::header::HeaderValue;
@@ -9,6 +9,7 @@ use lua;
 use rand::{thread_rng, Rng};
 use signup::rules::*;
 use std::collections::{HashMap, VecDeque};
+use std::ops::Add;
 use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time;
@@ -31,6 +32,7 @@ pub fn handle_events(
 ) {
     let mut rule_manager =
         SignupRulesManager::new(rules_path.to_string()).expect("could not load rules");
+
     println!("Currently {} rules.", rule_manager.rules.len());
 
     let mut latest_event_utc: DateTime<Utc> = Utc::now();
@@ -82,7 +84,7 @@ pub fn handle_events(
                 let mut matched_rules: Vec<String> = vec![];
 
                 for rule in &rule_manager.rules {
-                    let take_action = if !rule.enabled {
+                    let take_action = if !rule.enabled || rule.has_expired() {
                         Ok(false)
                     } else if rule.susp_ip && !user.susp_ip {
                         Ok(false)
@@ -274,10 +276,15 @@ pub fn handle_events(
                 let zulip_message = match rule_manager.find_rule(name) {
                     None => "No such rule found.".to_owned(),
                     Some(rule) => format!(
-                        "Criterion: {}.\nActions: {:?}{}",
+                        "Criterion: {}.\nActions: {:?}{}{}",
                         rule.criterion.friendly(),
                         rule.actions,
-                        if rule.no_delay { ". No delay." } else { "" }
+                        if rule.no_delay { ". No delay" } else { "" },
+                        if let Some(expiry) = rule.expiry {
+                            format!(". Expires: {}", expiry)
+                        } else {
+                            "".to_owned()
+                        },
                     ),
                 };
                 zulip::web::post_message(
@@ -381,6 +388,80 @@ pub fn handle_events(
                 zulip_main_topic,
                 zulip_url,
             ),
+            Event::InternalCheckRulesExpiry => {
+                let mut rules_to_remove = vec![];
+
+                for mut rule in &mut rule_manager.rules {
+                    if let Some(expiry) = rule.expiry {
+                        if expiry < Utc::now().add(Duration::days(1)) && rule.exp_notification == 0
+                        {
+                            zulip::web::post_message(
+                                format!(
+                                    "Notice: rule `{}` is expiring in less than a day",
+                                    rule.name
+                                ),
+                                zulip_bot_id,
+                                zulip_bot_token,
+                                zulip_notify_stream,
+                                zulip_notify_topic,
+                                zulip_url,
+                            );
+                            rule.exp_notification = 1;
+                        } else if expiry > Utc::now() && rule.exp_notification <= 1 {
+                            zulip::web::post_message(
+                                format!("Notice: rule `{}` has expired", rule.name),
+                                zulip_bot_id,
+                                zulip_bot_token,
+                                zulip_notify_stream,
+                                zulip_notify_topic,
+                                zulip_url,
+                            );
+                            rule.exp_notification = 2;
+                        }
+
+                        if Utc::now() > expiry.add(Duration::days(3)) {
+                            rules_to_remove.push(rule.name.clone());
+                        }
+                    }
+                }
+
+                if let Err(e) = rule_manager.save() {
+                    zulip::web::post_message(
+                        format!("Error while saving in InternalCheckRulesExpiry: {:?}", e),
+                        zulip_bot_id,
+                        zulip_bot_token,
+                        zulip_notify_stream,
+                        zulip_notify_topic,
+                        zulip_url,
+                    );
+                }
+
+                for rule_to_remove in rules_to_remove {
+                    if let Err(e) = rule_manager.remove_rule(rule_to_remove) {
+                        zulip::web::post_message(
+                            format!("Error while automatically removing expired rule: {:?}", e),
+                            zulip_bot_id,
+                            zulip_bot_token,
+                            zulip_notify_stream,
+                            zulip_notify_topic,
+                            zulip_url,
+                        );
+                    }
+                }
+            }
+            Event::InternalRenewRule { rule, new_expiry } => {
+                zulip::web::post_message(
+                    match rule_manager.renew(rule, new_expiry) {
+                        Ok(_) => "Rule renewed!".to_owned(),
+                        Err(e) => format!("Error on renewing: {:?}", e),
+                    },
+                    zulip_bot_id,
+                    zulip_bot_token,
+                    zulip_main_stream,
+                    zulip_main_topic,
+                    zulip_url,
+                );
+            }
         }
     }
 }

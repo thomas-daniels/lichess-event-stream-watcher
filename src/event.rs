@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use signup::rules::Rule;
 
 #[derive(Deserialize, Clone)]
@@ -17,6 +18,11 @@ pub enum Event {
     InternalStreamEventReceived,
     InternalZulipStatusCommand,
     InternalIsRecentlyChecked(String),
+    InternalCheckRulesExpiry,
+    InternalRenewRule {
+        rule: String,
+        new_expiry: DateTime<Utc>,
+    },
 }
 
 impl Event {

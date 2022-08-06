@@ -1,3 +1,4 @@
+use chrono::{Duration, Utc};
 use event::{Email, Event, Ip, User};
 use regex::Regex;
 use serde_json;
@@ -114,6 +115,31 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 None => false,
             };
 
+            let should_expire = match args.get(if no_delay { 10 } else { 9 }) {
+                Some(s) => {
+                    if s == &&"expires" || s == &&"expiry" {
+                        true
+                    } else {
+                        return Err(parse_error(Some(
+                            "'expires' or 'expiry' expected, got something else",
+                        )));
+                    }
+                }
+                None => false,
+            };
+
+            let expiry = if !should_expire {
+                None
+            } else {
+                match args.get(if no_delay { 11 } else { 10 }) {
+                    Some(s) => Some(parse_expiry_duration(s)?),
+                    None => {
+                        return Err(parse_error(Some("expiry time expected, got nothing")));
+                    }
+                }
+            }
+            .map(|duration| chrono::Utc::now() + duration);
+
             let rule = Rule {
                 name,
                 criterion,
@@ -123,6 +149,8 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 no_delay,
                 enabled: true,
                 susp_ip: susp_ip,
+                expiry,
+                exp_notification: 0,
             };
 
             tx.send(Event::InternalAddRule { rule }).unwrap();
@@ -161,6 +189,22 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
 
             Ok(None)
         }
+        &&"renew" => {
+            let rule_name = (***args
+                .get(2)
+                .ok_or(parse_error(Some("Please provide a rule name")))?)
+            .to_owned();
+            let duration_str = &(***args
+                .get(3)
+                .ok_or(parse_error(Some("Please provide a new expiry")))?);
+            let duration = parse_expiry_duration(duration_str)?;
+            tx.send(Event::InternalRenewRule {
+                rule: rule_name,
+                new_expiry: Utc::now() + duration,
+            })
+            .unwrap();
+            Ok(None)
+        }
         &&"list" => {
             tx.send(Event::InternalListRules).unwrap();
 
@@ -196,6 +240,24 @@ fn handle_external_command(command: &str) -> Result<Option<String>, ParseError> 
     match std::process::Command::new(command).output() {
         Ok(_) => Ok(None),
         Err(_) => Ok(Some(String::from("Failed executing command."))),
+    }
+}
+
+fn parse_expiry_duration(s: &str) -> Result<Duration, ParseError> {
+    let step = s.chars().last().unwrap_or('/');
+    let mut arg = s.chars();
+    arg.next_back();
+    let amount = arg.as_str().parse::<u32>().unwrap_or(0);
+    if amount == 0 || (step != 'd' && step != 'w') {
+        return Err(parse_error(Some(
+            "Invalid expiry date format. Example: `14d`. Supported: `d` (day), `w` (week).",
+        )));
+    }
+
+    match step {
+        'd' => Ok(chrono::Duration::days(amount.into())),
+        'w' => Ok(chrono::Duration::weeks(amount.into())),
+        _ => unreachable!(),
     }
 }
 

@@ -1,8 +1,21 @@
+use chrono::Utc;
+use chrono::{serde::ts_milliseconds_option, DateTime};
 use event::{FingerPrint, Ip, User, Username};
+use futures::{
+    future::{loop_fn, Loop},
+    Future,
+};
 use lua;
 use regex::Regex;
 use rlua;
-use std::fs::{File, OpenOptions};
+use std::{
+    fs::{File, OpenOptions},
+    sync::mpsc::Sender,
+    time::Instant,
+};
+use tokio::timer::Delay;
+
+use crate::event::Event;
 
 pub struct SignupRulesManager {
     pub rules: Vec<Rule>,
@@ -23,7 +36,7 @@ impl SignupRulesManager {
         self.rules.iter().find(|r| r.name.eq(&name))
     }
 
-    fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save(&self) -> Result<(), Box<dyn std::error::Error>> {
         let f = OpenOptions::new()
             .write(true)
             .truncate(true)
@@ -81,6 +94,21 @@ impl SignupRulesManager {
 
     pub fn enable_rules(&mut self, pattern: String) -> Result<i32, Box<dyn std::error::Error>> {
         self.enable_disable_rules(pattern, true)
+    }
+
+    pub fn renew(
+        &mut self,
+        rule_name: String,
+        expiry: DateTime<Utc>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        for mut rule in &mut self.rules {
+            if rule.name == rule_name {
+                rule.expiry = Some(expiry);
+                break;
+            }
+        }
+        self.save()?;
+        Ok(())
     }
 
     pub fn list_names(&self) -> Vec<String> {
@@ -146,6 +174,10 @@ pub struct Rule {
     pub enabled: bool,
     #[serde(default = "default_ip_susp")]
     pub susp_ip: bool,
+    #[serde(with = "ts_milliseconds_option")]
+    pub expiry: Option<chrono::DateTime<Utc>>,
+    #[serde(default = "default_exp_notification")]
+    pub exp_notification: u8,
 }
 
 fn default_match_count() -> usize {
@@ -165,6 +197,20 @@ fn default_enabled() -> bool {
 
 fn default_ip_susp() -> bool {
     false
+}
+
+fn default_exp_notification() -> u8 {
+    0
+}
+
+impl Rule {
+    pub fn has_expired(&self) -> bool {
+        if let Some(expiry) = self.expiry {
+            Utc::now() > expiry
+        } else {
+            false
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -254,4 +300,17 @@ impl Action {
             Action::NotifySlack => None,
         }
     }
+}
+
+pub fn expiry_loop(event_tx: Sender<Event>) {
+    println!("Expiry loop started.");
+    tokio::spawn(loop_fn((), move |_| {
+        let event_tx2 = event_tx.clone();
+        Delay::new(Instant::now() + std::time::Duration::from_secs(15 * 60))
+            .and_then(move |_| {
+                event_tx2.send(Event::InternalCheckRulesExpiry).unwrap();
+                Ok(Loop::Continue(()))
+            })
+            .map_err(|e| println!("Err in periodically_...: {}", e))
+    }));
 }

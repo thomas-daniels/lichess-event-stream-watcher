@@ -50,6 +50,7 @@ fn main() {
 
         status::status_loop(status_rx, tx.clone(), conf::TOKEN, status_tx.clone());
         status::periodically_ensure_alive_connection(status_tx.clone());
+        signup::rules::expiry_loop(tx.clone());
 
         eventhandler::handle_events(
             rx,

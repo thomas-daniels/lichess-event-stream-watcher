@@ -149,6 +149,8 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 susp_ip: susp_ip,
                 expiry,
                 exp_notification: 0,
+                creation_date: chrono::Utc::now(),
+                latest_match_date: None,
             };
 
             tx.send(Event::InternalAddRule { rule }).unwrap();

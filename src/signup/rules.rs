@@ -1,5 +1,5 @@
 use chrono::Utc;
-use chrono::{serde::ts_milliseconds_option, DateTime};
+use chrono::{serde::ts_milliseconds, serde::ts_milliseconds_option, DateTime};
 use event::{FingerPrint, Ip, User, Username};
 use futures::{
     future::{loop_fn, Loop},
@@ -148,6 +148,7 @@ impl SignupRulesManager {
             }
 
             rule.match_count += 1;
+            rule.latest_match_date = Some(Utc::now());
             let mrc = &mut rule.most_recent_caught;
             let Username(user) = user;
             mrc.push(user.to_owned());
@@ -178,6 +179,10 @@ pub struct Rule {
     pub expiry: Option<chrono::DateTime<Utc>>,
     #[serde(default = "default_exp_notification")]
     pub exp_notification: u8,
+    #[serde(with = "ts_milliseconds", default = "default_creation_date")]
+    pub creation_date: DateTime<Utc>,
+    #[serde(with = "ts_milliseconds_option", default = "default_latest_match_date")]
+    pub latest_match_date: Option<DateTime<Utc>>,
 }
 
 fn default_match_count() -> usize {
@@ -201,6 +206,14 @@ fn default_ip_susp() -> bool {
 
 fn default_exp_notification() -> u8 {
     0
+}
+
+fn default_creation_date() -> DateTime<Utc> {
+    DateTime::<Utc>::MIN_UTC
+}
+
+fn default_latest_match_date() -> Option<DateTime<Utc>> {
+    None
 }
 
 fn default_expiry() -> Option<DateTime<Utc>> {

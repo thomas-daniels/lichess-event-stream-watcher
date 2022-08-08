@@ -24,8 +24,10 @@ pub fn handle_events(
     rules_path: &'static str,
     zulip_bot_id: &'static str,
     zulip_bot_token: &'static str,
-    zulip_main_stream: &'static str,
-    zulip_main_topic: &'static str,
+    zulip_notify_stream: &'static str,
+    zulip_notify_topic: &'static str,
+    zulip_command_stream: &'static str,
+    zulip_command_topic: &'static str,
     zulip_log_stream: &'static str,
     zulip_log_topic: &'static str,
     zulip_url: &'static str,
@@ -100,8 +102,8 @@ pub fn handle_events(
                             ),
                             zulip_bot_id,
                             zulip_bot_token,
-                            zulip_main_stream,
-                            zulip_main_topic,
+                            zulip_command_stream,
+                            zulip_command_topic,
                             zulip_url,
                         );
                     }
@@ -170,8 +172,8 @@ pub fn handle_events(
                                                 ),
                                                 zulip_bot_id,
                                                 zulip_bot_token,
-                                                zulip_main_stream,
-                                                zulip_main_topic,
+                                                zulip_notify_stream,
+                                                zulip_notify_topic,
                                                 zulip_url,
                                             );
 
@@ -232,8 +234,8 @@ pub fn handle_events(
                                 err_msg,
                                 zulip_bot_id,
                                 zulip_bot_token,
-                                zulip_main_stream,
-                                zulip_main_topic,
+                                zulip_notify_stream,
+                                zulip_notify_topic,
                                 zulip_url,
                             );
                         }
@@ -256,8 +258,8 @@ pub fn handle_events(
                         format!("Error on adding rule: {}", err),
                         zulip_bot_id,
                         zulip_bot_token,
-                        zulip_main_stream,
-                        zulip_main_topic,
+                        zulip_command_stream,
+                        zulip_command_topic,
                         zulip_url,
                     );
                 }
@@ -266,8 +268,8 @@ pub fn handle_events(
                         "Rule added!".to_owned(),
                         zulip_bot_id,
                         zulip_bot_token,
-                        zulip_main_stream,
-                        zulip_main_topic,
+                        zulip_command_stream,
+                        zulip_command_topic,
                         zulip_url,
                     );
                 }
@@ -295,8 +297,8 @@ pub fn handle_events(
                     zulip_message,
                     zulip_bot_id,
                     zulip_bot_token,
-                    zulip_main_stream,
-                    zulip_main_topic,
+                    zulip_command_stream,
+                    zulip_command_topic,
                     zulip_url,
                 );
             }
@@ -318,8 +320,8 @@ pub fn handle_events(
                     zulip_message,
                     zulip_bot_id,
                     zulip_bot_token,
-                    zulip_main_stream,
-                    zulip_main_topic,
+                    zulip_command_stream,
+                    zulip_command_topic,
                     zulip_url,
                 );
             }
@@ -332,8 +334,8 @@ pub fn handle_events(
                     zulip_message,
                     zulip_bot_id,
                     zulip_bot_token,
-                    zulip_main_stream,
-                    zulip_main_topic,
+                    zulip_command_stream,
+                    zulip_command_topic,
                     zulip_url,
                 );
             }
@@ -346,8 +348,8 @@ pub fn handle_events(
                     zulip_message,
                     zulip_bot_id,
                     zulip_bot_token,
-                    zulip_main_stream,
-                    zulip_main_topic,
+                    zulip_command_stream,
+                    zulip_command_topic,
                     zulip_url,
                 );
             }
@@ -355,8 +357,8 @@ pub fn handle_events(
                 format!("Current rules: {}", rule_manager.list_names().join(", ")),
                 zulip_bot_id,
                 zulip_bot_token,
-                zulip_main_stream,
-                zulip_main_topic,
+                zulip_command_stream,
+                zulip_command_topic,
                 zulip_url,
             ),
             Event::InternalStreamEventReceived => latest_event_utc = Utc::now(),
@@ -367,8 +369,8 @@ pub fn handle_events(
                 ),
                 zulip_bot_id,
                 zulip_bot_token,
-                zulip_main_stream,
-                zulip_main_topic,
+                zulip_command_stream,
+                zulip_command_topic,
                 zulip_url,
             ),
             Event::InternalIsRecentlyChecked(username) => zulip::web::post_message(
@@ -388,8 +390,8 @@ pub fn handle_events(
                 },
                 zulip_bot_id,
                 zulip_bot_token,
-                zulip_main_stream,
-                zulip_main_topic,
+                zulip_command_stream,
+                zulip_command_topic,
                 zulip_url,
             ),
             Event::InternalCheckRulesExpiry => {
@@ -406,8 +408,8 @@ pub fn handle_events(
                                 ),
                                 zulip_bot_id,
                                 zulip_bot_token,
-                                zulip_main_stream,
-                                zulip_main_topic,
+                                zulip_notify_stream,
+                                zulip_notify_topic,
                                 zulip_url,
                             );
                             rule.exp_notification = 1;
@@ -416,8 +418,8 @@ pub fn handle_events(
                                 format!("Notice: rule `{}` has expired", rule.name),
                                 zulip_bot_id,
                                 zulip_bot_token,
-                                zulip_main_stream,
-                                zulip_main_topic,
+                                zulip_notify_stream,
+                                zulip_notify_topic,
                                 zulip_url,
                             );
                             rule.exp_notification = 2;
@@ -434,8 +436,8 @@ pub fn handle_events(
                         format!("Error while saving in InternalCheckRulesExpiry: {:?}", e),
                         zulip_bot_id,
                         zulip_bot_token,
-                        zulip_main_stream,
-                        zulip_main_topic,
+                        zulip_notify_stream,
+                        zulip_notify_topic,
                         zulip_url,
                     );
                 }
@@ -446,8 +448,8 @@ pub fn handle_events(
                             format!("Error while automatically removing expired rule: {:?}", e),
                             zulip_bot_id,
                             zulip_bot_token,
-                            zulip_main_stream,
-                            zulip_main_topic,
+                            zulip_notify_stream,
+                            zulip_notify_topic,
                             zulip_url,
                         );
                     }
@@ -461,8 +463,8 @@ pub fn handle_events(
                     },
                     zulip_bot_id,
                     zulip_bot_token,
-                    zulip_main_stream,
-                    zulip_main_topic,
+                    zulip_command_stream,
+                    zulip_command_topic,
                     zulip_url,
                 );
             }

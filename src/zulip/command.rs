@@ -113,30 +113,16 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 None => false,
             };
 
-            let should_expire = match args.get(if no_delay { 10 } else { 9 }) {
+            let expiry = match args.get(if no_delay { 10 } else { 9 }) {
                 Some(s) => {
-                    if s == &&"expires" || s == &&"expiry" {
-                        true
+                    if s == &&"noexpiry" {
+                        None
                     } else {
-                        return Err(parse_error(Some(
-                            "'expires' or 'expiry' expected, got something else",
-                        )));
+                        Some(Utc::now() + Duration::days(182))
                     }
                 }
-                None => false,
+                None => Some(Utc::now() + Duration::days(182)),
             };
-
-            let expiry = if !should_expire {
-                None
-            } else {
-                match args.get(if no_delay { 11 } else { 10 }) {
-                    Some(s) => Some(parse_expiry_duration(s)?),
-                    None => {
-                        return Err(parse_error(Some("expiry time expected, got nothing")));
-                    }
-                }
-            }
-            .map(|duration| chrono::Utc::now() + duration);
 
             let rule = Rule {
                 name,

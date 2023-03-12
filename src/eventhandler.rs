@@ -413,7 +413,7 @@ pub fn handle_events(
                                 zulip_url,
                             );
                             rule.exp_notification = 1;
-                        } else if expiry > Utc::now() && rule.exp_notification <= 1 {
+                        } else if expiry < Utc::now() && rule.exp_notification <= 1 {
                             zulip::web::post_message(
                                 format!("Notice: rule `{}` has expired", rule.name),
                                 zulip_bot_id,

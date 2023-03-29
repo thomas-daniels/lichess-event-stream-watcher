@@ -70,12 +70,12 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                 &&"print" => return Err(parse_error(Some("Use lichess print ban instead"))),
                 &&"email" => match criterion_check {
                     &&"contains" => Criterion::EmailContains(criterion_value),
-                    &&"regex" => Criterion::EmailRegex(Regex::new(&criterion_value)?),
+                    &&"regex" => Criterion::EmailRegex(value_to_regex(&criterion_value)?),
                     _ => return Err(parse_error(None)),
                 },
                 &&"username" => match criterion_check {
                     &&"contains" => Criterion::UsernameContains(criterion_value),
-                    &&"regex" => Criterion::UsernameRegex(Regex::new(&criterion_value)?),
+                    &&"regex" => Criterion::UsernameRegex(value_to_regex(&criterion_value)?),
                     _ => return Err(parse_error(None)),
                 },
                 &&"useragent" => match criterion_check {
@@ -203,6 +203,14 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
             Ok(None)
         }
         _ => Err(parse_error(None)),
+    }
+}
+
+fn value_to_regex(v: &str) -> Result<Regex, regex::Error> {
+    if v.starts_with("(?i)") {
+        Regex::new(v)
+    } else {
+        Regex::new(&("(?i)".to_owned() + v))
     }
 }
 

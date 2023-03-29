@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use event::{Email, Event, Ip, User};
+use event::{Event, Ip, User};
 use regex::Regex;
 use serde_json;
 use signup::rules::{Action, Criterion, Rule};
@@ -197,22 +197,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
             Ok(None)
         }
         &&"test" => {
-            let user_unpreprocessed = User::from_json(code)?;
-            let Email(email) = user_unpreprocessed.email;
-            let email_processed = email
-                .split("|")
-                .collect::<Vec<&str>>()
-                .get(1)
-                .ok_or(parse_error(None))?
-                .trim_matches('>');
-            let user = User {
-                username: user_unpreprocessed.username,
-                ip: user_unpreprocessed.ip,
-                finger_print: user_unpreprocessed.finger_print,
-                user_agent: user_unpreprocessed.user_agent,
-                email: Email(email_processed.to_string()),
-                susp_ip: false,
-            };
+            let user = User::from_json(code)?;
             tx.send(Event::InternalHypotheticalSignup(user)).unwrap();
 
             Ok(None)

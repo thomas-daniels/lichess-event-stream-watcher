@@ -162,7 +162,7 @@ pub fn handle_events(
                                         }));
                                     }
                                     None => {
-                                        if action.eq(&Action::NotifySlack)
+                                        if action.eq(&Action::NotifyZulip)
                                             && !recently_notified.contains(&user.username.0)
                                         {
                                             zulip::web::post_message(
@@ -187,12 +187,12 @@ pub fn handle_events(
                             }
 
                             if rule.actions.len() > 1
-                                || !rule.actions.get(0).eq(&Some(&Action::NotifySlack))
+                                || !rule.actions.get(0).eq(&Some(&Action::NotifyZulip))
                             {
                                 zulip::web::post_message(
                                     format!(
                                         "Rule {} match: \
-                                         {} on <https://lichess.org/@/{}?mod|{}>. \
+                                         {} on [{}](https://lichess.org/@/{}?mod). \
                                          {} previous matches. \
                                          Recent matches: {}",
                                         &rule.name,
@@ -207,7 +207,7 @@ pub fn handle_events(
                                                 .iter()
                                                 .map(|u| {
                                                     format!(
-                                                        "<https://lichess.org/@/{}?mod|{}>",
+                                                        "[{}](https://lichess.org/@/{}?mod)",
                                                         &u, &u
                                                     )
                                                 })

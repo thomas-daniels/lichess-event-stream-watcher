@@ -55,7 +55,7 @@ pub fn status_loop(
                             main_tx.clone(),
                             status_tx.clone(),
                         );
-                        println!("Slack connection restarted.");
+                        println!("Zulip connection restarted.");
                         Ok(Loop::Continue((latest_stream_event, latest_zulip_event)))
                     } else {
                         Ok(Loop::Continue((latest_stream_event, latest_zulip_event)))

@@ -98,7 +98,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
                     "close" => Some(Action::Close),
                     "alt" => Some(Action::Alt),
                     "panic" => Some(Action::EnableChatPanic),
-                    "notify" => Some(Action::NotifySlack),
+                    "notify" => Some(Action::NotifyZulip),
                     _ => None,
                 })
                 .flatten()

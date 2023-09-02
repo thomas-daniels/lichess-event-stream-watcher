@@ -63,6 +63,21 @@ pub fn handle_events(
                     _ => panic!("This is impossible."),
                 };
 
+                let mut user = user;
+                let parsed_ip = user.ip.0.parse::<IpAddr>();
+                match parsed_ip {
+                    Ok(ip) => match geoip_reader.lookup::<geoip2::City>(ip) {
+                        Ok(city) => {
+                            user.geoip = Some(GeoipInfo::from_maxminddb_city(city));
+                        }
+                        Err(e) => {
+                            println!("Error reading GeoIP database: {}", e);
+                        }
+                    },
+                    Err(e) => println!("Error parsing IP address ({}) for GeoIP: {}", user.ip.0, e),
+                };
+                let user = user;
+
                 let user_id = user.username.0.to_lowercase();
                 recently_checked.push_back(user_id.clone());
 
@@ -86,21 +101,6 @@ pub fn handle_events(
                         recently_checked_info.remove(&popped);
                     }
                 }
-
-                let mut user = user;
-                let parsed_ip = user.ip.0.parse::<IpAddr>();
-                match parsed_ip {
-                    Ok(ip) => match geoip_reader.lookup::<geoip2::City>(ip) {
-                        Ok(city) => {
-                            user.geoip = Some(GeoipInfo::from_maxminddb_city(city));
-                        }
-                        Err(e) => {
-                            println!("Error reading GeoIP database: {}", e);
-                        }
-                    },
-                    Err(e) => println!("Error parsing IP address ({}) for GeoIP: {}", user.ip.0, e),
-                };
-                let user = user;
 
                 let delay_ms_if_needed = thread_rng().gen_range(30..100) * 1000;
 

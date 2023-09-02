@@ -1,5 +1,3 @@
-use chrono::offset::Utc;
-use chrono::DateTime;
 use event::Event;
 use futures::future;
 use futures::future::Loop;
@@ -10,7 +8,6 @@ use hyper_rustls::HttpsConnector;
 use status::StatusPing;
 use std::sync::mpsc::Sender;
 use std::thread;
-use std::time::SystemTime;
 
 pub fn watch_event_stream(tx: Sender<Event>, token: &'static str, status_tx: Sender<StatusPing>) {
     tokio::spawn(future::loop_fn((), move |_| {
@@ -46,9 +43,7 @@ pub fn watch_event_stream(tx: Sender<Event>, token: &'static str, status_tx: Sen
                     for line in &lines {
                         count = count + 1;
                         if count % 400 == 0 {
-                            let now = SystemTime::now();
-                            let dt: DateTime<Utc> = now.into();
-                            println!("UTC {}: 400 done", dt.format("%d/%m/%Y %T"));
+                            println!("400 done");
                             count = 0;
                         }
 

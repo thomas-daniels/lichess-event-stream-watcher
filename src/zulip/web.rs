@@ -5,6 +5,8 @@ use hyper::{Body, Client, Method, Request};
 use hyper_rustls::HttpsConnector;
 use tokio;
 use urlencoding::encode;
+use base64::Engine;
+use base64::engine::general_purpose::STANDARD as BASE64;
 
 pub fn post_message(
     text: String,
@@ -31,7 +33,7 @@ pub fn post_message(
             hyper::header::AUTHORIZATION,
             HeaderValue::from_str(&format!(
                 "Basic {}",
-                base64::encode(bot_id.to_owned() + ":" + token)
+                BASE64.encode(bot_id.to_owned() + ":" + token)
             ))
             .expect("Authorization header value error"),
         );

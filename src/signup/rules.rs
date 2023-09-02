@@ -101,7 +101,7 @@ impl SignupRulesManager {
         rule_name: String,
         expiry: DateTime<Utc>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        for mut rule in &mut self.rules {
+        for rule in &mut self.rules {
             if rule.name == rule_name {
                 rule.expiry = Some(expiry);
                 break;

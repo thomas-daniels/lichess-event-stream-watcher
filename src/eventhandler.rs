@@ -397,7 +397,7 @@ pub fn handle_events(
             Event::InternalCheckRulesExpiry => {
                 let mut rules_to_remove = vec![];
 
-                for mut rule in &mut rule_manager.rules {
+                for rule in &mut rule_manager.rules {
                     if let Some(expiry) = rule.expiry {
                         if expiry < Utc::now().add(Duration::days(1)) && rule.exp_notification == 0
                         {

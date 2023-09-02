@@ -45,10 +45,10 @@ pub fn watch_event_stream(tx: Sender<Event>, token: &'static str, status_tx: Sen
                     let lines: Vec<&str> = string_chunk.split("\n").collect();
                     for line in &lines {
                         count = count + 1;
-                        if count % 20 == 0 {
+                        if count % 400 == 0 {
                             let now = SystemTime::now();
                             let dt: DateTime<Utc> = now.into();
-                            println!("UTC {}: 20 done", dt.format("%d/%m/%Y %T"));
+                            println!("UTC {}: 400 done", dt.format("%d/%m/%Y %T"));
                             count = 0;
                         }
 

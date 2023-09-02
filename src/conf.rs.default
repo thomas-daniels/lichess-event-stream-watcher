@@ -1,5 +1,6 @@
 pub const TOKEN: &'static str = "Lichess API token";
 pub const RULES_PATH: &'static str = "rules/rules.json";
+pub const GEOIP_DB_PATH: &'static str = "GeoLite2-City.mmdb";
 pub const ZULIP_BOT_TOKEN: &'static str = "Zulip bot token";
 pub const ZULIP_BOT_ID: &'static str = "Zulip bot ID (that email address thing)";
 pub const ZULIP_BOT_USERNAME: &'static str = "Zulip bot username";

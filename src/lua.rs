@@ -17,6 +17,33 @@ impl UserData for User {
             Some(ref fp) => Ok(fp.0.clone()),
             None => Ok(String::from("<NO PRINT>")),
         });
+        methods.add_method("country", |_, this, _: ()| {
+            Ok(this
+                .geoip
+                .as_ref()
+                .and_then(|g| g.country.clone())
+                .unwrap_or(String::from("<NO COUNTRY>")))
+        });
+        methods.add_method("city", |_, this, _: ()| {
+            Ok(this
+                .geoip
+                .as_ref()
+                .and_then(|g| g.city.clone())
+                .unwrap_or(String::from("<NO CITY>")))
+        });
+        methods.add_method("subdivisions", |_, this, _: ()| {
+            Ok(this
+                .geoip
+                .as_ref()
+                .and_then(|g| g.subdivisions.clone())
+                .unwrap_or(vec![]))
+        });
+        methods.add_method("has_subdivision", |_, this, args: (String,)| {
+            Ok(this
+                .geoip
+                .as_ref()
+                .and_then(|g| g.subdivisions.as_ref().map(|s| s.contains(&args.0))))
+        });
     }
 }
 

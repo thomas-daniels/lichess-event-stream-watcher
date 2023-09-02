@@ -3,6 +3,7 @@ extern crate chrono;
 extern crate futures;
 extern crate hyper;
 extern crate hyper_rustls;
+extern crate maxminddb;
 extern crate rand;
 extern crate tokio;
 extern crate url;
@@ -56,6 +57,7 @@ fn main() {
             rx,
             conf::TOKEN,
             conf::RULES_PATH,
+            conf::GEOIP_DB_PATH,
             conf::ZULIP_BOT_ID,
             conf::ZULIP_BOT_TOKEN,
             conf::ZULIP_NOTIFY_STREAM,

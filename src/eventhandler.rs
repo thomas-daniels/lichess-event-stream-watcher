@@ -6,9 +6,11 @@ use hyper::rt::Future;
 use hyper::{Body, Client, Method, Request};
 use hyper_rustls::HttpsConnector;
 use lua;
+use maxminddb::geoip2;
 use rand::{thread_rng, Rng};
 use signup::rules::*;
 use std::collections::{HashMap, VecDeque};
+use std::net::IpAddr;
 use std::ops::Add;
 use std::sync::mpsc::Receiver;
 use std::thread;
@@ -16,12 +18,13 @@ use std::time;
 use tokio;
 use zulip;
 
-use crate::event::User;
+use crate::event::{GeoipInfo, User};
 
 pub fn handle_events(
     rx: Receiver<Event>,
     token: &'static str,
     rules_path: &'static str,
+    geoip_db_path: &'static str,
     zulip_bot_id: &'static str,
     zulip_bot_token: &'static str,
     zulip_notify_stream: &'static str,
@@ -34,6 +37,9 @@ pub fn handle_events(
 ) {
     let mut rule_manager =
         SignupRulesManager::new(rules_path.to_string()).expect("could not load rules");
+
+    let geoip_reader =
+        maxminddb::Reader::open_readfile(geoip_db_path).expect("could not load geoip database");
 
     println!("Currently {} rules.", rule_manager.rules.len());
 
@@ -80,6 +86,21 @@ pub fn handle_events(
                         recently_checked_info.remove(&popped);
                     }
                 }
+
+                let mut user = user;
+                let parsed_ip = user.ip.0.parse::<IpAddr>();
+                match parsed_ip {
+                    Ok(ip) => match geoip_reader.lookup::<geoip2::City>(ip) {
+                        Ok(city) => {
+                            user.geoip = Some(GeoipInfo::from_maxminddb_city(city));
+                        }
+                        Err(e) => {
+                            println!("Error reading GeoIP database: {}", e);
+                        }
+                    },
+                    Err(e) => println!("Error parsing IP address ({}) for GeoIP: {}", user.ip.0, e),
+                };
+                let user = user;
 
                 let delay_ms_if_needed = thread_rng().gen_range(30..100) * 1000;
 

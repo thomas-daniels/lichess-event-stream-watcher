@@ -25,7 +25,7 @@ fn handle_signup_command(command: String, tx: Sender<Event>) -> Result<Option<St
     let mut first_split: Vec<&str> = command.split("`").collect();
     let mut code = "";
     if first_split.len() > 2 {
-        code = first_split.get(1).ok_or(parse_error(None))?.clone();
+        code = first_split.get(1).ok_or(parse_error(None))?;
         first_split[0] = first_split[0].trim();
         first_split[1] = "$ $";
         first_split[2] = first_split[2].trim();

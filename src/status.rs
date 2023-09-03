@@ -44,7 +44,7 @@ pub fn status_loop(
                     Ok(Loop::Continue((latest_stream_event, Instant::now())))
                 }
                 StatusPing::EnsureAliveConnectionZulip => {
-                    if latest_zulip_event.elapsed().as_secs() > 720 {
+                    if latest_zulip_event.elapsed().as_secs() > 300 {
                         zulip::rtm::connect_to_zulip(
                             conf::ZULIP_URL,
                             conf::ZULIP_BOT_TOKEN,

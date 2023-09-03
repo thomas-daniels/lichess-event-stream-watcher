@@ -1,3 +1,5 @@
+use base64::engine::general_purpose::STANDARD as BASE64;
+use base64::Engine;
 use event::Event;
 use futures::future;
 use futures::future::Loop;
@@ -9,8 +11,6 @@ use serde_json;
 use status::StatusPing;
 use std::sync::mpsc::Sender;
 use zulip::command::handle_command;
-use base64::Engine;
-use base64::engine::general_purpose::STANDARD as BASE64;
 
 pub fn connect_to_zulip(
     zulip_url: &'static str,

@@ -1,3 +1,5 @@
+use base64::engine::general_purpose::STANDARD as BASE64;
+use base64::Engine;
 use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::Future;
@@ -5,8 +7,6 @@ use hyper::{Body, Client, Method, Request};
 use hyper_rustls::HttpsConnector;
 use tokio;
 use urlencoding::encode;
-use base64::Engine;
-use base64::engine::general_purpose::STANDARD as BASE64;
 
 pub fn post_message(
     text: String,

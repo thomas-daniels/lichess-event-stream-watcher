@@ -56,7 +56,7 @@ pub fn status_loop(
                             status_tx.clone(),
                         );
                         println!("Zulip connection restarted.");
-                        Ok(Loop::Continue((latest_stream_event, latest_zulip_event)))
+                        Ok(Loop::Continue((latest_stream_event, Instant::now())))
                     } else {
                         Ok(Loop::Continue((latest_stream_event, latest_zulip_event)))
                     }

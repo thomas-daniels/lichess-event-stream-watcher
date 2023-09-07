@@ -1,6 +1,7 @@
 use crate::event::Event;
 use crate::status::StatusPing;
 use crate::zulip::command::handle_command;
+
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
 use futures::future;

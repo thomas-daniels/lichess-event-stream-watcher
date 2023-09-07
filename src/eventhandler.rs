@@ -1,7 +1,10 @@
 use crate::event::Event;
+use crate::event::{DeviceInfo, GeoipInfo, User};
 use crate::lua;
+use crate::signup::rules::Action;
 use crate::signup::rules::*;
 use crate::zulip;
+
 use chrono::{prelude::*, Duration};
 use futures::future;
 use hyper::header::HeaderValue;
@@ -18,9 +21,6 @@ use std::thread;
 use std::time;
 use tokio;
 use uaparser::UserAgentParser;
-
-use crate::event::{DeviceInfo, GeoipInfo, User};
-use crate::signup::rules::Action;
 
 pub fn handle_events(
     rx: Receiver<Event>,

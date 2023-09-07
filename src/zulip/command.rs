@@ -1,5 +1,6 @@
 use crate::event::{Event, Ip, User};
 use crate::signup::rules::{Action, Criterion, Rule};
+
 use chrono::{Duration, Utc};
 use regex::Regex;
 use serde_json;

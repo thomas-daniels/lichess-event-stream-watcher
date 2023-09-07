@@ -2,6 +2,7 @@ use crate::conf;
 use crate::event::Event;
 use crate::eventstream;
 use crate::zulip;
+
 use futures::future::{self, loop_fn, Loop};
 use futures::Future;
 use std::sync::mpsc::{Receiver, Sender};

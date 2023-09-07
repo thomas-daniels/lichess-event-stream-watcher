@@ -1,5 +1,7 @@
+use crate::event::Event;
 use crate::event::{FingerPrint, Ip, User, Username};
 use crate::lua;
+
 use chrono::Utc;
 use chrono::{serde::ts_milliseconds, serde::ts_milliseconds_option, DateTime};
 use futures::{
@@ -15,8 +17,6 @@ use std::{
     time::Instant,
 };
 use tokio::timer::Delay;
-
-use crate::event::Event;
 
 pub struct SignupRulesManager {
     pub rules: Vec<Rule>,

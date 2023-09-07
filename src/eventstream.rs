@@ -1,5 +1,6 @@
 use crate::event::Event;
 use crate::status::StatusPing;
+
 use futures::future;
 use futures::future::Loop;
 use hyper::header::HeaderValue;

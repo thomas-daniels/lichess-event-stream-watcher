@@ -6,11 +6,15 @@ extern crate hyper_rustls;
 extern crate maxminddb;
 extern crate rand;
 extern crate tokio;
+extern crate uaparser;
 extern crate url;
 extern crate urlencoding;
 
 #[macro_use]
 extern crate serde_derive;
+
+#[macro_use]
+extern crate lazy_static;
 
 extern crate regex;
 extern crate serde;
@@ -58,6 +62,7 @@ fn main() {
             conf::TOKEN,
             conf::RULES_PATH,
             conf::GEOIP_DB_PATH,
+            conf::UAP_REGEXES_PATH,
             conf::ZULIP_BOT_ID,
             conf::ZULIP_BOT_TOKEN,
             conf::ZULIP_NOTIFY_STREAM,

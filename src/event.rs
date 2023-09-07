@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use maxminddb::geoip2;
+use regex::Regex;
 use signup::rules::Rule;
+use uaparser::{Parser, UserAgentParser};
 
 #[derive(Deserialize, Clone)]
 #[serde(tag = "t")]
@@ -43,6 +45,7 @@ pub struct User {
     #[serde(default = "default_susp_ip")]
     pub susp_ip: bool,
     pub geoip: Option<GeoipInfo>,
+    pub device: Option<DeviceInfo>,
 }
 
 impl User {
@@ -76,6 +79,98 @@ impl GeoipInfo {
                     .collect()
             }),
         }
+    }
+}
+
+lazy_static! {
+    static ref MOB_UA_RE: Regex = Regex::new(
+        r"(?i)lichess mobile/(\S+)(?: \(\d*\))? as:(\S+) sri:(\S+) os:(Android|iOS)/(\S+) dev:(.*)"
+    )
+    .unwrap();
+    static ref MOB_UA_TRIM_RE: Regex = Regex::new(r"LM/(\S+) (Android|iOS)/(\S+) (.*)").unwrap();
+}
+
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq)]
+pub struct DeviceInfo {
+    pub device: String,
+    pub os: String,
+    pub client: String,
+}
+
+impl DeviceInfo {
+    pub fn lichess_bot(ua: &str) -> Option<DeviceInfo> {
+        if ua.starts_with("lichess-bot/") {
+            Some(DeviceInfo {
+                client: "lichess-bot ".to_string() + &ua[12..].split(" ").next().unwrap_or(""),
+                os: String::from("Other"),
+                device: String::from("Computer"),
+            })
+        } else {
+            None
+        }
+    }
+
+    pub fn lichess_mob(ua: &str) -> Option<DeviceInfo> {
+        let maybe_caps = MOB_UA_RE.captures(ua);
+        maybe_caps.map(|caps| {
+            let version = caps.get(0).map(|m| m.as_str()).unwrap_or("?");
+            let os_name = caps.get(3).map(|m| m.as_str()).unwrap_or("?");
+            let os_version = caps.get(4).map(|m| m.as_str()).unwrap_or("?");
+            let device = caps.get(5).map(|m| m.as_str()).unwrap_or("?");
+
+            DeviceInfo {
+                device: device.to_string(),
+                os: String::from(os_name) + " " + os_version,
+                client: String::from("Lichess Mobile ") + version,
+            }
+        })
+    }
+
+    pub fn lichess_mob_trim(ua: &str) -> Option<DeviceInfo> {
+        let maybe_caps = MOB_UA_TRIM_RE.captures(ua);
+        maybe_caps.map(|caps| {
+            let version = caps.get(0).map(|m| m.as_str()).unwrap_or("?");
+            let os_name = caps.get(1).map(|m| m.as_str()).unwrap_or("?");
+            let os_version = caps.get(2).map(|m| m.as_str()).unwrap_or("?");
+            let device = caps.get(3).map(|m| m.as_str()).unwrap_or("?");
+
+            DeviceInfo {
+                device: device.to_string(),
+                os: String::from(os_name) + " " + os_version,
+                client: String::from("Lichess Mobile ") + version,
+            }
+        })
+    }
+
+    pub fn from_uap_client(c: uaparser::Client) -> DeviceInfo {
+        let device = if c.device.family == "Other" {
+            "Computer"
+        } else {
+            &c.device.family
+        };
+        let os = match c.os.major {
+            Some(major) => c.os.family + " " + major,
+            None => c.os.family,
+        };
+        let client = match c.user_agent.major {
+            Some(major) => c.user_agent.family + " " + major,
+            None => c.user_agent.family,
+        };
+        DeviceInfo {
+            device: device.to_string(),
+            os: os.to_string(),
+            client: client.to_string(),
+        }
+    }
+
+    pub fn parse_user_agent(ua: &str, parser: &UserAgentParser) -> DeviceInfo {
+        DeviceInfo::lichess_bot(ua)
+            .or_else(|| DeviceInfo::lichess_mob(ua))
+            .or_else(|| DeviceInfo::lichess_mob_trim(ua))
+            .unwrap_or_else(|| {
+                let parsed = parser.parse(ua);
+                DeviceInfo::from_uap_client(parsed)
+            })
     }
 }
 

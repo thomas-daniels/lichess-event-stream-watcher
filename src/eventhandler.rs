@@ -16,15 +16,17 @@ use std::sync::mpsc::Receiver;
 use std::thread;
 use std::time;
 use tokio;
+use uaparser::UserAgentParser;
 use zulip;
 
-use crate::event::{GeoipInfo, User};
+use crate::event::{DeviceInfo, GeoipInfo, User};
 
 pub fn handle_events(
     rx: Receiver<Event>,
     token: &'static str,
     rules_path: &'static str,
     geoip_db_path: &'static str,
+    uap_regexes_path: &'static str,
     zulip_bot_id: &'static str,
     zulip_bot_token: &'static str,
     zulip_notify_stream: &'static str,
@@ -40,6 +42,9 @@ pub fn handle_events(
 
     let geoip_reader =
         maxminddb::Reader::open_readfile(geoip_db_path).expect("could not load geoip database");
+
+    let ua_parser =
+        UserAgentParser::from_yaml(uap_regexes_path).expect("could not construct UA parser");
 
     println!("Currently {} rules.", rule_manager.rules.len());
 
@@ -76,6 +81,10 @@ pub fn handle_events(
                     },
                     Err(e) => println!("Error parsing IP address ({}) for GeoIP: {}", user.ip.0, e),
                 };
+
+                if let Some(ref ua) = user.user_agent {
+                    user.device = Some(DeviceInfo::parse_user_agent(&ua.0, &ua_parser));
+                }
                 let user = user;
 
                 let user_id = user.username.0.to_lowercase();

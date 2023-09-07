@@ -44,6 +44,27 @@ impl UserData for User {
                 .as_ref()
                 .and_then(|g| g.subdivisions.as_ref().map(|s| s.contains(&args.0))))
         });
+        methods.add_method("device", |_, this, _: ()| {
+            Ok(this
+                .device
+                .as_ref()
+                .map(|d| d.device.clone())
+                .unwrap_or(String::from("<NO DEVICE>")))
+        });
+        methods.add_method("os", |_, this, _: ()| {
+            Ok(this
+                .device
+                .as_ref()
+                .map(|d| d.os.clone())
+                .unwrap_or(String::from("<NO OS>")))
+        });
+        methods.add_method("client", |_, this, _: ()| {
+            Ok(this
+                .device
+                .as_ref()
+                .map(|d| d.client.clone())
+                .unwrap_or(String::from("<NO CLIENT>")))
+        });
     }
 }
 

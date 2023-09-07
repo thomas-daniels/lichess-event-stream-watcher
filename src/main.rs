@@ -1,28 +1,3 @@
-extern crate base64;
-extern crate chrono;
-extern crate futures;
-extern crate hyper;
-extern crate hyper_rustls;
-extern crate maxminddb;
-extern crate rand;
-extern crate tokio;
-extern crate uaparser;
-extern crate url;
-extern crate urlencoding;
-
-#[macro_use]
-extern crate serde_derive;
-
-#[macro_use]
-extern crate lazy_static;
-
-extern crate regex;
-extern crate serde;
-extern crate serde_json;
-extern crate serde_regex;
-
-extern crate rlua;
-
 mod conf;
 mod event;
 mod eventhandler;

@@ -1,13 +1,13 @@
-use conf;
-use event::Event;
-use eventstream;
+use crate::conf;
+use crate::event::Event;
+use crate::eventstream;
+use crate::zulip;
 use futures::future::{self, loop_fn, Loop};
 use futures::Future;
 use std::sync::mpsc::{Receiver, Sender};
 use std::time::{Duration, Instant};
 use tokio;
 use tokio::timer::Delay;
-use zulip;
 
 pub enum StatusPing {
     StreamEventReceived,

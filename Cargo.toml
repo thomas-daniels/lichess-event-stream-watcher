@@ -2,6 +2,7 @@
 name = "lichess-event-stream"
 version = "0.1.0"
 authors = ["ProgramFOX <programfox@hotmail.be>"]
+edition = "2021"
 
 [dependencies]
 hyper = "0.12"

@@ -1,8 +1,8 @@
+use crate::event::{Event, Ip, User};
+use crate::signup::rules::{Action, Criterion, Rule};
 use chrono::{Duration, Utc};
-use event::{Event, Ip, User};
 use regex::Regex;
 use serde_json;
-use signup::rules::{Action, Criterion, Rule};
 use std::error::Error;
 use std::sync::mpsc::Sender;
 

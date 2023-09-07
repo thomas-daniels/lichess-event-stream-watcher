@@ -1,14 +1,15 @@
+use crate::event::Event;
+use crate::lua;
+use crate::signup::rules::*;
+use crate::zulip;
 use chrono::{prelude::*, Duration};
-use event::Event;
 use futures::future;
 use hyper::header::HeaderValue;
 use hyper::rt::Future;
 use hyper::{Body, Client, Method, Request};
 use hyper_rustls::HttpsConnector;
-use lua;
 use maxminddb::geoip2;
 use rand::{thread_rng, Rng};
-use signup::rules::*;
 use std::collections::{HashMap, VecDeque};
 use std::net::IpAddr;
 use std::ops::Add;
@@ -17,9 +18,9 @@ use std::thread;
 use std::time;
 use tokio;
 use uaparser::UserAgentParser;
-use zulip;
 
 use crate::event::{DeviceInfo, GeoipInfo, User};
+use crate::signup::rules::Action;
 
 pub fn handle_events(
     rx: Receiver<Event>,

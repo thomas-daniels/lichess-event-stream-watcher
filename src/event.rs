@@ -1,7 +1,9 @@
+use crate::signup::rules::Rule;
 use chrono::{DateTime, Utc};
+use lazy_static::lazy_static;
 use maxminddb::geoip2;
 use regex::Regex;
-use signup::rules::Rule;
+use serde::{Deserialize, Serialize};
 use uaparser::{Parser, UserAgentParser};
 
 #[derive(Deserialize, Clone)]

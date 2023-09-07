@@ -1,11 +1,11 @@
-use event::Event;
+use crate::event::Event;
+use crate::status::StatusPing;
 use futures::future;
 use futures::future::Loop;
 use hyper::header::HeaderValue;
 use hyper::rt::{Future, Stream};
 use hyper::{Body, Client, Request};
 use hyper_rustls::HttpsConnector;
-use status::StatusPing;
 use std::sync::mpsc::Sender;
 use std::thread;
 

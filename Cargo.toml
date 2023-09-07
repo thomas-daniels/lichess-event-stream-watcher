@@ -1,6 +1,6 @@
 [package]
 name = "lichess-event-stream"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Thomas Daniels <daniels.thomas@pm.me>", "Lichess Team"]
 edition = "2021"
 

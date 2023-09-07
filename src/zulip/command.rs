@@ -12,12 +12,39 @@ pub fn handle_command(command: String, tx: Sender<Event>) -> Result<Option<Strin
     match parts.get(0).ok_or(parse_error(None))? {
         &"status" => handle_status_command(tx.clone()),
         &"signup" => handle_signup_command(command, tx.clone()),
+        &"namechk" => handle_namechk_command(command, tx.clone()),
         _ => Err(parse_error(None)),
     }
 }
 
 fn handle_status_command(tx: Sender<Event>) -> Result<Option<String>, ParseError> {
     tx.send(Event::InternalZulipStatusCommand).unwrap();
+    Ok(None)
+}
+
+fn handle_namechk_command(
+    command: String,
+    tx: Sender<Event>,
+) -> Result<Option<String>, ParseError> {
+    let username = command
+        .split(" ")
+        .nth(1)
+        .ok_or(parse_error(Some("Please provide a username")))?;
+
+    let json = format!(
+        r#"
+        {{
+            "username": "{username}",
+            "email": "qwe@asd.zxc",
+            "ip": "127.0.0.1",
+            "susp_ip": false
+        }}
+        "#
+    );
+
+    let user = User::from_json(&json)?;
+    tx.send(Event::InternalHypotheticalSignup(user)).unwrap();
+
     Ok(None)
 }
 

@@ -198,8 +198,8 @@ pub fn handle_events(
                                         {
                                             zulip::web::post_message(
                                                 format!(
-                                                    "Rule {} match: https://lichess.org/@/{}",
-                                                    &rule.name, &user.username.0
+                                                    "Rule {} match: [{}](https://lichess.org/@/{}?mod)",
+                                                    &rule.name, &user.username.0, &user_id
                                                 ),
                                                 zulip_bot_id,
                                                 zulip_bot_token,

@@ -53,7 +53,7 @@ pub fn handle_events(
 
     let lua_state = lua::new_lua();
 
-    let mut recently_notified: Vec<String> = vec![];
+    let mut recently_notified: VecDeque<String> = VecDeque::new();
     let mut recently_checked: VecDeque<String> = VecDeque::new();
     let mut recently_checked_info: HashMap<String, VecDeque<User>> = HashMap::new();
 
@@ -194,12 +194,12 @@ pub fn handle_events(
                                     }
                                     None => {
                                         if action.eq(&Action::NotifyZulip)
-                                            && !recently_notified.contains(&user.username.0)
+                                            && !recently_notified.contains(&user_id)
                                         {
                                             zulip::web::post_message(
                                                 format!(
-                                                    "Rule {} match: https://lichess.org/@/{}",
-                                                    &rule.name, &user.username.0
+                                                    "Rule {} match: [{}](https://lichess.org/@/{}?mod)",
+                                                    &rule.name, &user.username.0, &user_id
                                                 ),
                                                 zulip_bot_id,
                                                 zulip_bot_token,
@@ -208,9 +208,9 @@ pub fn handle_events(
                                                 zulip_url,
                                             );
 
-                                            recently_notified.insert(0, user.username.0.clone());
-                                            if recently_notified.len() > 5 {
-                                                recently_notified.pop();
+                                            recently_notified.push_back(user_id.clone());
+                                            if recently_notified.len() > 2000 {
+                                                recently_notified.pop_front();
                                             }
                                         }
                                     }

@@ -12,6 +12,8 @@ use uaparser::{Parser, UserAgentParser};
 pub enum Event {
     #[serde(rename_all = "camelCase", rename = "signup")]
     Signup(User),
+    #[serde(rename_all = "camelCase", rename = "teamCreate")]
+    TeamCreate(Team),
     InternalHypotheticalSignup(User),
     InternalAddRule {
         rule: Rule,
@@ -191,3 +193,12 @@ pub struct UserAgent(pub String);
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Clone)]
 pub struct FingerPrint(pub String);
+
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct Team {
+    pub team_id: String,
+    pub name: String,
+    pub description: String,
+    pub creator: String,
+}

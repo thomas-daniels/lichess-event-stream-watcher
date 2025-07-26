@@ -1,5 +1,5 @@
-use crate::event::Event;
 use crate::event::{DeviceInfo, GeoipInfo, User};
+use crate::event::{Event, Team};
 use crate::lua;
 use crate::signup::rules::Action;
 use crate::signup::rules::*;
@@ -13,6 +13,7 @@ use hyper::{Body, Client, Method, Request};
 use hyper_rustls::HttpsConnector;
 use maxminddb::geoip2;
 use rand::{thread_rng, Rng};
+use rlua::Lua;
 use std::collections::{HashMap, VecDeque};
 use std::net::IpAddr;
 use std::ops::Add;
@@ -21,6 +22,282 @@ use std::thread;
 use std::time;
 use tokio;
 use uaparser::UserAgentParser;
+
+fn handle_signup_event(
+    event2: Event,
+    user: User,
+    rule_manager: &mut SignupRulesManager,
+    geoip_reader: &maxminddb::Reader<Vec<u8>>,
+    ua_parser: &UserAgentParser,
+    lua_state: &Lua,
+    recently_checked: &mut VecDeque<String>,
+    recently_checked_info: &mut HashMap<String, VecDeque<User>>,
+    recently_notified: &mut VecDeque<String>,
+    token: &'static str,
+    zulip_bot_id: &'static str,
+    zulip_bot_token: &'static str,
+    zulip_notify_stream: &'static str,
+    zulip_notify_topic: &'static str,
+    zulip_command_stream: &'static str,
+    zulip_command_topic: &'static str,
+    zulip_log_stream: &'static str,
+    zulip_log_topic: &'static str,
+    zulip_url: &'static str,
+) {
+    let hypothetical = match event2 {
+        Event::Signup(_) => false,
+        Event::InternalHypotheticalSignup(_) => true,
+        _ => panic!("This is impossible."),
+    };
+
+    let mut user = user;
+    let parsed_ip = user.ip.0.parse::<IpAddr>();
+    match parsed_ip {
+        Ok(ip) => match geoip_reader.lookup::<geoip2::City>(ip) {
+            Ok(city) => {
+                user.geoip = Some(GeoipInfo::from_maxminddb_city(city));
+            }
+            Err(e) => {
+                println!("Error reading GeoIP database: {}", e);
+            }
+        },
+        Err(e) => println!("Error parsing IP address ({}) for GeoIP: {}", user.ip.0, e),
+    };
+
+    if let Some(ref ua) = user.user_agent {
+        user.device = Some(DeviceInfo::parse_user_agent(&ua.0, &ua_parser));
+    }
+    let user = user;
+
+    let user_id = user.username.0.to_lowercase();
+    recently_checked.push_back(user_id.clone());
+
+    if !recently_checked_info.contains_key(&user_id) {
+        recently_checked_info.insert(user_id.clone(), VecDeque::new());
+    }
+    recently_checked_info
+        .get_mut(&user_id)
+        .unwrap()
+        .push_back(user.clone());
+
+    if recently_checked.len() > 10000 {
+        let popped = recently_checked.pop_front().unwrap();
+        recently_checked_info
+            .get_mut(&popped)
+            .map(|v| v.pop_front());
+        if recently_checked_info
+            .get(&popped)
+            .eq(&Some(&VecDeque::new()))
+        {
+            recently_checked_info.remove(&popped);
+        }
+    }
+
+    let delay_ms_if_needed = thread_rng().gen_range(30..100) * 1000;
+
+    let mut matched_rules: Vec<String> = vec![];
+
+    for rule in &rule_manager.rules {
+        let take_action = if !rule.enabled || rule.has_expired() {
+            Ok(false)
+        } else if rule.susp_ip && !user.susp_ip {
+            Ok(false)
+        } else {
+            rule.criterion.take_action(&user, &lua_state)
+        };
+
+        if hypothetical && take_action.clone().unwrap_or(false) {
+            zulip::web::post_message(
+                format!(
+                    "Rule {} would take these actions: {:?}",
+                    &rule.name, &rule.actions
+                ),
+                zulip_bot_id,
+                zulip_bot_token,
+                zulip_command_stream,
+                zulip_command_topic,
+                zulip_url,
+            );
+        }
+        let take_real_action = if take_action.is_ok() {
+            Ok(take_action.unwrap() && !hypothetical)
+        } else {
+            take_action
+        };
+
+        match take_real_action {
+            Ok(true) => {
+                matched_rules.push(rule.name.clone());
+
+                let bearer = "Bearer ".to_owned() + token;
+
+                for action in &rule.actions {
+                    match action.api_endpoint(&user.username) {
+                        Some(endpoint) => {
+                            let mut action_req = Request::new(Body::from(""));
+                            *action_req.uri_mut() = endpoint.parse().unwrap();
+                            *action_req.method_mut() = Method::POST;
+                            action_req.headers_mut().insert(
+                                hyper::header::AUTHORIZATION,
+                                HeaderValue::from_str(&bearer).unwrap(),
+                            );
+
+                            let https = HttpsConnector::new(1);
+                            let client = Client::builder().build::<_, Body>(https);
+
+                            let delay = !rule.no_delay
+                                && (action.eq(&Action::EngineMark)
+                                    || action.eq(&Action::BoostMark)
+                                    || action.eq(&Action::IpBan)
+                                    || action.eq(&Action::Close));
+
+                            let delay_additional = if !rule.no_delay && action.eq(&Action::Close) {
+                                1500
+                            } else {
+                                0
+                            };
+
+                            tokio::spawn(future::lazy(move || {
+                                if delay {
+                                    thread::sleep(time::Duration::from_millis(
+                                        delay_ms_if_needed + delay_additional,
+                                    ));
+                                }
+
+                                client
+                                    .request(action_req)
+                                    .map(|res| println!("Action: {}.", res.status()))
+                                    .map_err(|err| {
+                                        println!("Error on mod action: {}", err);
+                                    })
+                            }));
+                        }
+                        None => {
+                            if action.eq(&Action::NotifyZulip)
+                                && !recently_notified.contains(&user_id)
+                            {
+                                zulip::web::post_message(
+                                    format!(
+                                        "Rule {} match: [{}](https://lichess.org/@/{}?mod)",
+                                        &rule.name, &user.username.0, &user_id
+                                    ),
+                                    zulip_bot_id,
+                                    zulip_bot_token,
+                                    zulip_notify_stream,
+                                    zulip_notify_topic,
+                                    zulip_url,
+                                );
+
+                                recently_notified.push_back(user_id.clone());
+                                if recently_notified.len() > 2000 {
+                                    recently_notified.pop_front();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if rule.actions.len() > 1 || !rule.actions.get(0).eq(&Some(&Action::NotifyZulip)) {
+                    zulip::web::post_message(
+                        format!(
+                            "Rule {} match: \
+                                         {} on [{}](https://lichess.org/@/{}?mod). \
+                                         {} previous matches. \
+                                         Recent matches: {}",
+                            &rule.name,
+                            &rule.criterion.friendly(),
+                            &user.username.0,
+                            &user.username.0,
+                            &rule.match_count,
+                            if rule.most_recent_caught.len() == 0 {
+                                "None".to_string()
+                            } else {
+                                rule.most_recent_caught
+                                    .iter()
+                                    .map(|u| format!("[{}](https://lichess.org/@/{}?mod)", &u, &u))
+                                    .collect::<Vec<String>>()
+                                    .join(", ")
+                            }
+                        ),
+                        zulip_bot_id,
+                        zulip_bot_token,
+                        zulip_log_stream,
+                        zulip_log_topic,
+                        zulip_url,
+                    );
+                }
+            }
+            Ok(false) => {}
+            Err(err) => {
+                let err_msg = format!(
+                    "Error on `{}` for user `{}` (probably in Lua snippet): `{}`",
+                    &rule.name, &user.username.0, err
+                );
+                println!("{}", err_msg.clone());
+                zulip::web::post_message(
+                    err_msg,
+                    zulip_bot_id,
+                    zulip_bot_token,
+                    zulip_notify_stream,
+                    zulip_notify_topic,
+                    zulip_url,
+                );
+            }
+        }
+    }
+
+    if !hypothetical {
+        for name in matched_rules {
+            match rule_manager.caught(name, &user.username) {
+                Ok(_) => {}
+                Err(e) => println!("Error in .caught: {}", e),
+            };
+        }
+    }
+}
+
+fn handle_team_event(
+    team: Team,
+    rule_manager: &SignupRulesManager,
+    zulip_bot_id: &'static str,
+    zulip_bot_token: &'static str,
+    zulip_notify_stream: &'static str,
+    zulip_notify_topic: &'static str,
+    zulip_url: &'static str,
+) {
+    for rule in &rule_manager.rules {
+        if !rule.enabled || rule.has_expired() || !rule.actions.contains(&Action::NotifyZulip) {
+            continue;
+        }
+
+        let rule_match = match rule.criterion {
+            Criterion::UsernameContains(ref pattern) => {
+                team.name.to_uppercase().contains(&pattern.to_uppercase())
+                    || team
+                        .team_id
+                        .to_uppercase()
+                        .contains(&pattern.to_uppercase())
+            }
+            Criterion::UsernameRegex(ref regex) => {
+                regex.is_match(&team.name) || regex.is_match(&team.team_id)
+            }
+            _ => false,
+        };
+
+        if rule_match {
+            zulip::web::post_message(
+                format!("Rule {} match: /team/{}", &rule.name, &team.team_id),
+                zulip_bot_id,
+                zulip_bot_token,
+                zulip_notify_stream,
+                zulip_notify_topic,
+                zulip_url,
+            );
+
+            break;
+        }
+    }
+}
 
 pub fn handle_events(
     rx: Receiver<Event>,
@@ -62,226 +339,36 @@ pub fn handle_events(
         let event2 = event.clone();
 
         match event {
-            Event::Signup(user) | Event::InternalHypotheticalSignup(user) => {
-                let hypothetical = match event2 {
-                    Event::Signup(_) => false,
-                    Event::InternalHypotheticalSignup(_) => true,
-                    _ => panic!("This is impossible."),
-                };
-
-                let mut user = user;
-                let parsed_ip = user.ip.0.parse::<IpAddr>();
-                match parsed_ip {
-                    Ok(ip) => match geoip_reader.lookup::<geoip2::City>(ip) {
-                        Ok(city) => {
-                            user.geoip = Some(GeoipInfo::from_maxminddb_city(city));
-                        }
-                        Err(e) => {
-                            println!("Error reading GeoIP database: {}", e);
-                        }
-                    },
-                    Err(e) => println!("Error parsing IP address ({}) for GeoIP: {}", user.ip.0, e),
-                };
-
-                if let Some(ref ua) = user.user_agent {
-                    user.device = Some(DeviceInfo::parse_user_agent(&ua.0, &ua_parser));
-                }
-                let user = user;
-
-                let user_id = user.username.0.to_lowercase();
-                recently_checked.push_back(user_id.clone());
-
-                if !recently_checked_info.contains_key(&user_id) {
-                    recently_checked_info.insert(user_id.clone(), VecDeque::new());
-                }
-                recently_checked_info
-                    .get_mut(&user_id)
-                    .unwrap()
-                    .push_back(user.clone());
-
-                if recently_checked.len() > 10000 {
-                    let popped = recently_checked.pop_front().unwrap();
-                    recently_checked_info
-                        .get_mut(&popped)
-                        .map(|v| v.pop_front());
-                    if recently_checked_info
-                        .get(&popped)
-                        .eq(&Some(&VecDeque::new()))
-                    {
-                        recently_checked_info.remove(&popped);
-                    }
-                }
-
-                let delay_ms_if_needed = thread_rng().gen_range(30..100) * 1000;
-
-                let mut matched_rules: Vec<String> = vec![];
-
-                for rule in &rule_manager.rules {
-                    let take_action = if !rule.enabled || rule.has_expired() {
-                        Ok(false)
-                    } else if rule.susp_ip && !user.susp_ip {
-                        Ok(false)
-                    } else {
-                        rule.criterion.take_action(&user, &lua_state)
-                    };
-
-                    if hypothetical && take_action.clone().unwrap_or(false) {
-                        zulip::web::post_message(
-                            format!(
-                                "Rule {} would take these actions: {:?}",
-                                &rule.name, &rule.actions
-                            ),
-                            zulip_bot_id,
-                            zulip_bot_token,
-                            zulip_command_stream,
-                            zulip_command_topic,
-                            zulip_url,
-                        );
-                    }
-                    let take_real_action = if take_action.is_ok() {
-                        Ok(take_action.unwrap() && !hypothetical)
-                    } else {
-                        take_action
-                    };
-
-                    match take_real_action {
-                        Ok(true) => {
-                            matched_rules.push(rule.name.clone());
-
-                            let bearer = "Bearer ".to_owned() + token;
-
-                            for action in &rule.actions {
-                                match action.api_endpoint(&user.username) {
-                                    Some(endpoint) => {
-                                        let mut action_req = Request::new(Body::from(""));
-                                        *action_req.uri_mut() = endpoint.parse().unwrap();
-                                        *action_req.method_mut() = Method::POST;
-                                        action_req.headers_mut().insert(
-                                            hyper::header::AUTHORIZATION,
-                                            HeaderValue::from_str(&bearer).unwrap(),
-                                        );
-
-                                        let https = HttpsConnector::new(1);
-                                        let client = Client::builder().build::<_, Body>(https);
-
-                                        let delay = !rule.no_delay
-                                            && (action.eq(&Action::EngineMark)
-                                                || action.eq(&Action::BoostMark)
-                                                || action.eq(&Action::IpBan)
-                                                || action.eq(&Action::Close));
-
-                                        let delay_additional =
-                                            if !rule.no_delay && action.eq(&Action::Close) {
-                                                1500
-                                            } else {
-                                                0
-                                            };
-
-                                        tokio::spawn(future::lazy(move || {
-                                            if delay {
-                                                thread::sleep(time::Duration::from_millis(
-                                                    delay_ms_if_needed + delay_additional,
-                                                ));
-                                            }
-
-                                            client
-                                                .request(action_req)
-                                                .map(|res| println!("Action: {}.", res.status()))
-                                                .map_err(|err| {
-                                                    println!("Error on mod action: {}", err);
-                                                })
-                                        }));
-                                    }
-                                    None => {
-                                        if action.eq(&Action::NotifyZulip)
-                                            && !recently_notified.contains(&user_id)
-                                        {
-                                            zulip::web::post_message(
-                                                format!(
-                                                    "Rule {} match: [{}](https://lichess.org/@/{}?mod)",
-                                                    &rule.name, &user.username.0, &user_id
-                                                ),
-                                                zulip_bot_id,
-                                                zulip_bot_token,
-                                                zulip_notify_stream,
-                                                zulip_notify_topic,
-                                                zulip_url,
-                                            );
-
-                                            recently_notified.push_back(user_id.clone());
-                                            if recently_notified.len() > 2000 {
-                                                recently_notified.pop_front();
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            if rule.actions.len() > 1
-                                || !rule.actions.get(0).eq(&Some(&Action::NotifyZulip))
-                            {
-                                zulip::web::post_message(
-                                    format!(
-                                        "Rule {} match: \
-                                         {} on [{}](https://lichess.org/@/{}?mod). \
-                                         {} previous matches. \
-                                         Recent matches: {}",
-                                        &rule.name,
-                                        &rule.criterion.friendly(),
-                                        &user.username.0,
-                                        &user.username.0,
-                                        &rule.match_count,
-                                        if rule.most_recent_caught.len() == 0 {
-                                            "None".to_string()
-                                        } else {
-                                            rule.most_recent_caught
-                                                .iter()
-                                                .map(|u| {
-                                                    format!(
-                                                        "[{}](https://lichess.org/@/{}?mod)",
-                                                        &u, &u
-                                                    )
-                                                })
-                                                .collect::<Vec<String>>()
-                                                .join(", ")
-                                        }
-                                    ),
-                                    zulip_bot_id,
-                                    zulip_bot_token,
-                                    zulip_log_stream,
-                                    zulip_log_topic,
-                                    zulip_url,
-                                );
-                            }
-                        }
-                        Ok(false) => {}
-                        Err(err) => {
-                            let err_msg = format!(
-                                "Error on `{}` for user `{}` (probably in Lua snippet): `{}`",
-                                &rule.name, &user.username.0, err
-                            );
-                            println!("{}", err_msg.clone());
-                            zulip::web::post_message(
-                                err_msg,
-                                zulip_bot_id,
-                                zulip_bot_token,
-                                zulip_notify_stream,
-                                zulip_notify_topic,
-                                zulip_url,
-                            );
-                        }
-                    }
-                }
-
-                if !hypothetical {
-                    for name in matched_rules {
-                        match rule_manager.caught(name, &user.username) {
-                            Ok(_) => {}
-                            Err(e) => println!("Error in .caught: {}", e),
-                        };
-                    }
-                }
-            }
+            Event::Signup(user) | Event::InternalHypotheticalSignup(user) => handle_signup_event(
+                event2,
+                user,
+                &mut rule_manager,
+                &geoip_reader,
+                &ua_parser,
+                &lua_state,
+                &mut recently_checked,
+                &mut recently_checked_info,
+                &mut recently_notified,
+                token,
+                zulip_bot_id,
+                zulip_bot_token,
+                zulip_notify_stream,
+                zulip_notify_topic,
+                zulip_command_stream,
+                zulip_command_topic,
+                zulip_log_stream,
+                zulip_log_topic,
+                zulip_url,
+            ),
+            Event::TeamCreate(team) => handle_team_event(
+                team,
+                &rule_manager,
+                zulip_bot_id,
+                zulip_bot_token,
+                zulip_notify_stream,
+                zulip_notify_topic,
+                zulip_url,
+            ),
             Event::InternalAddRule { rule } => match rule_manager.add_rule(rule) {
                 Err(err) => {
                     println!("Error on .add_rule: {}", err);

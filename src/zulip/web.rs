@@ -13,9 +13,10 @@ pub fn post_message(
     bot_id: &'static str,
     token: &'static str,
     stream: &'static str,
-    topic: &'static str,
+    topic: impl Into<String>,
     zulip_url: &'static str,
 ) {
+    let topic: String = topic.into();
     tokio::spawn(future::lazy(move || {
         let https = HttpsConnector::new(2);
         let client = Client::builder().build::<_, Body>(https);
@@ -40,7 +41,7 @@ pub fn post_message(
         *req.body_mut() = format!(
             "type=stream&to={}&subject={}&content={}",
             encode(stream),
-            encode(topic),
+            encode(&topic),
             encode(&text)
         )
         .into();

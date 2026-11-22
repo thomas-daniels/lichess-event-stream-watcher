@@ -229,6 +229,20 @@ impl Rule {
             false
         }
     }
+
+    pub fn tag(&self) -> Option<&str> {
+        match self.name.split_once(':') {
+            Some((tag, _)) if !tag.is_empty() => Some(tag),
+            _ => None,
+        }
+    }
+
+    pub fn notify_topic(&self, default_topic: &str, tag_topic_prefix: &str) -> String {
+        match self.tag() {
+            Some(tag) => format!("{}: {}", tag_topic_prefix, tag),
+            None => default_topic.to_owned(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -331,4 +345,37 @@ pub fn expiry_loop(event_tx: Sender<Event>) {
             })
             .map_err(|e| println!("Err in periodically_...: {}", e))
     }));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rule_named(name: &str) -> Rule {
+        serde_json::from_str(&format!(
+            r#"{{"name": "{}", "criterion": {{"IpMatch": "127.0.0.1"}}, "actions": []}}"#,
+            name
+        ))
+        .unwrap()
+    }
+
+    #[test]
+    fn tag_is_text_before_first_colon() {
+        assert_eq!(rule_named("Ru:some-rule").tag(), Some("Ru"));
+        assert_eq!(rule_named("Ru:a:b").tag(), Some("Ru"));
+        assert_eq!(rule_named("plain-rule").tag(), None);
+        assert_eq!(rule_named(":no-tag").tag(), None);
+    }
+
+    #[test]
+    fn notify_topic_uses_prefix_for_tagged_rules_only() {
+        assert_eq!(
+            rule_named("Ru:some-rule").notify_topic("default", "Watcher"),
+            "Watcher: Ru"
+        );
+        assert_eq!(
+            rule_named("plain-rule").notify_topic("default", "Watcher"),
+            "default"
+        );
+    }
 }

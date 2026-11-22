@@ -14,7 +14,7 @@ use hyper_rustls::HttpsConnector;
 use maxminddb::geoip2;
 use rand::{thread_rng, Rng};
 use rlua::Lua;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::net::IpAddr;
 use std::ops::Add;
 use std::sync::mpsc::Receiver;
@@ -32,12 +32,13 @@ fn handle_signup_event(
     lua_state: &Lua,
     recently_checked: &mut VecDeque<String>,
     recently_checked_info: &mut HashMap<String, VecDeque<User>>,
-    recently_notified: &mut VecDeque<String>,
+    recently_notified: &mut VecDeque<(String, String)>,
     token: &'static str,
     zulip_bot_id: &'static str,
     zulip_bot_token: &'static str,
     zulip_notify_stream: &'static str,
     zulip_notify_topic: &'static str,
+    zulip_notify_topic_prefix: &'static str,
     zulip_command_stream: &'static str,
     zulip_command_topic: &'static str,
     zulip_log_stream: &'static str,
@@ -98,6 +99,8 @@ fn handle_signup_event(
     let mut matched_rules: Vec<String> = vec![];
 
     for rule in &rule_manager.rules {
+        let notify_topic = rule.notify_topic(zulip_notify_topic, zulip_notify_topic_prefix);
+
         let take_action = if !rule.enabled || rule.has_expired() {
             Ok(false)
         } else if rule.susp_ip && !user.susp_ip {
@@ -173,8 +176,11 @@ fn handle_signup_event(
                             }));
                         }
                         None => {
+                            // Deduplicate per topic, so that a user matching rules of
+                            // different tags is announced in each tag's topic
+                            let notified_key = (notify_topic.clone(), user_id.clone());
                             if action.eq(&Action::NotifyZulip)
-                                && !recently_notified.contains(&user_id)
+                                && !recently_notified.contains(&notified_key)
                             {
                                 zulip::web::post_message(
                                     format!(
@@ -184,11 +190,11 @@ fn handle_signup_event(
                                     zulip_bot_id,
                                     zulip_bot_token,
                                     zulip_notify_stream,
-                                    zulip_notify_topic,
+                                    notify_topic.clone(),
                                     zulip_url,
                                 );
 
-                                recently_notified.push_back(user_id.clone());
+                                recently_notified.push_back(notified_key);
                                 if recently_notified.len() > 2000 {
                                     recently_notified.pop_front();
                                 }
@@ -239,7 +245,7 @@ fn handle_signup_event(
                     zulip_bot_id,
                     zulip_bot_token,
                     zulip_notify_stream,
-                    zulip_notify_topic,
+                    notify_topic,
                     zulip_url,
                 );
             }
@@ -263,10 +269,18 @@ fn handle_team_event(
     zulip_bot_token: &'static str,
     zulip_notify_stream: &'static str,
     zulip_notify_topic: &'static str,
+    zulip_notify_topic_prefix: &'static str,
     zulip_url: &'static str,
 ) {
+    let mut notified_topics: HashSet<String> = HashSet::new();
+
     for rule in &rule_manager.rules {
         if !rule.enabled || rule.has_expired() || !rule.actions.contains(&Action::NotifyZulip) {
+            continue;
+        }
+
+        let notify_topic = rule.notify_topic(zulip_notify_topic, zulip_notify_topic_prefix);
+        if notified_topics.contains(&notify_topic) {
             continue;
         }
 
@@ -290,11 +304,11 @@ fn handle_team_event(
                 zulip_bot_id,
                 zulip_bot_token,
                 zulip_notify_stream,
-                zulip_notify_topic,
+                notify_topic.clone(),
                 zulip_url,
             );
 
-            break;
+            notified_topics.insert(notify_topic);
         }
     }
 }
@@ -309,6 +323,7 @@ pub fn handle_events(
     zulip_bot_token: &'static str,
     zulip_notify_stream: &'static str,
     zulip_notify_topic: &'static str,
+    zulip_notify_topic_prefix: &'static str,
     zulip_command_stream: &'static str,
     zulip_command_topic: &'static str,
     zulip_log_stream: &'static str,
@@ -330,7 +345,7 @@ pub fn handle_events(
 
     let lua_state = lua::new_lua();
 
-    let mut recently_notified: VecDeque<String> = VecDeque::new();
+    let mut recently_notified: VecDeque<(String, String)> = VecDeque::new();
     let mut recently_checked: VecDeque<String> = VecDeque::new();
     let mut recently_checked_info: HashMap<String, VecDeque<User>> = HashMap::new();
 
@@ -354,6 +369,7 @@ pub fn handle_events(
                 zulip_bot_token,
                 zulip_notify_stream,
                 zulip_notify_topic,
+                zulip_notify_topic_prefix,
                 zulip_command_stream,
                 zulip_command_topic,
                 zulip_log_stream,
@@ -367,6 +383,7 @@ pub fn handle_events(
                 zulip_bot_token,
                 zulip_notify_stream,
                 zulip_notify_topic,
+                zulip_notify_topic_prefix,
                 zulip_url,
             ),
             Event::InternalAddRule { rule } => match rule_manager.add_rule(rule) {
@@ -517,6 +534,8 @@ pub fn handle_events(
 
                 for rule in &mut rule_manager.rules {
                     if let Some(expiry) = rule.expiry {
+                        let notify_topic =
+                            rule.notify_topic(zulip_notify_topic, zulip_notify_topic_prefix);
                         if expiry < Utc::now().add(Duration::days(1)) && rule.exp_notification == 0
                         {
                             zulip::web::post_message(
@@ -527,7 +546,7 @@ pub fn handle_events(
                                 zulip_bot_id,
                                 zulip_bot_token,
                                 zulip_notify_stream,
-                                zulip_notify_topic,
+                                notify_topic,
                                 zulip_url,
                             );
                             rule.exp_notification = 1;
@@ -537,7 +556,7 @@ pub fn handle_events(
                                 zulip_bot_id,
                                 zulip_bot_token,
                                 zulip_notify_stream,
-                                zulip_notify_topic,
+                                notify_topic,
                                 zulip_url,
                             );
                             rule.exp_notification = 2;

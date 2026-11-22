@@ -42,6 +42,7 @@ fn main() {
             conf::ZULIP_BOT_TOKEN,
             conf::ZULIP_NOTIFY_STREAM,
             conf::ZULIP_NOTIFY_TOPIC,
+            conf::ZULIP_NOTIFY_TOPIC_PREFIX,
             conf::ZULIP_COMMAND_STREAM,
             conf::ZULIP_COMMAND_TOPIC,
             conf::ZULIP_LOG_STREAM,

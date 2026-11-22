@@ -24,6 +24,7 @@ fn main() {
             conf::ZULIP_BOT_USERNAME,
             conf::ZULIP_COMMAND_STREAM,
             conf::ZULIP_COMMAND_TOPIC,
+            zulip::web::ProcessedMove::from_conf(),
             tx.clone(),
             status_tx.clone(),
         );

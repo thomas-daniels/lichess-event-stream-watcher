@@ -1,6 +1,7 @@
 use crate::event::Event;
 use crate::status::StatusPing;
 use crate::zulip::command::handle_command;
+use crate::zulip::web::ProcessedMove;
 
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
@@ -20,6 +21,7 @@ pub fn connect_to_zulip(
     bot_name: &'static str,
     listen_stream: &'static str,
     listen_topic: &'static str,
+    processed_move: ProcessedMove,
     tx: Sender<Event>,
     status_tx: Sender<StatusPing>,
 ) {
@@ -44,7 +46,7 @@ pub fn connect_to_zulip(
             ))
             .expect("Authorization header value error"),
         );
-        *req.body_mut() = "event_types=[\"message\"]".into();
+        *req.body_mut() = "event_types=[\"message\",\"reaction\"]".into();
         *req.method_mut() = Method::POST;
 
         client
@@ -152,6 +154,32 @@ pub fn connect_to_zulip(
                                                             );
                                                         }
                                                         _ => {}
+                                                    }
+                                                }
+
+                                                status_tx2
+                                                    .send(StatusPing::ZulipPingReceived)
+                                                    .unwrap();
+                                            }
+                                            Some("reaction") => {
+                                                let message_id = event
+                                                    .get("message_id")
+                                                    .and_then(|i| i.as_i64());
+                                                if event.get("op").and_then(|o| o.as_str())
+                                                    == Some("add")
+                                                    && event
+                                                        .get("emoji_name")
+                                                        .and_then(|e| e.as_str())
+                                                        == Some("check")
+                                                {
+                                                    if let Some(message_id) = message_id {
+                                                        super::web::move_to_processed_topic_if_eligible(
+                                                            message_id,
+                                                            bot_id,
+                                                            token,
+                                                            zulip_url,
+                                                            processed_move,
+                                                        );
                                                     }
                                                 }
 

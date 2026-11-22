@@ -252,10 +252,18 @@ impl Rule {
 
     pub fn notify_topic(&self, default_topic: &str, tag_topic_prefix: &str) -> String {
         match self.tag() {
-            Some(tag) => format!("{}: {}", tag_topic_prefix, tag),
+            Some(tag) => format!("{}{}", tag_topic_start(tag_topic_prefix), tag),
             None => default_topic.to_owned(),
         }
     }
+}
+
+fn tag_topic_start(tag_topic_prefix: &str) -> String {
+    format!("{}: ", tag_topic_prefix)
+}
+
+pub fn is_tag_topic(topic: &str, tag_topic_prefix: &str) -> bool {
+    topic.starts_with(&tag_topic_start(tag_topic_prefix))
 }
 
 #[derive(Serialize, Deserialize, Clone)]

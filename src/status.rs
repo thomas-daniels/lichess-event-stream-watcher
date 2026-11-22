@@ -53,6 +53,7 @@ pub fn status_loop(
                             conf::ZULIP_BOT_USERNAME,
                             conf::ZULIP_COMMAND_STREAM,
                             conf::ZULIP_COMMAND_TOPIC,
+                            zulip::web::ProcessedMove::from_conf(),
                             main_tx.clone(),
                             status_tx.clone(),
                         );

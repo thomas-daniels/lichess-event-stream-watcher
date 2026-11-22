@@ -200,14 +200,14 @@ fn handle_signup_event(
                 if rule.actions.len() > 1 || !rule.actions.get(0).eq(&Some(&Action::NotifyZulip)) {
                     zulip::web::post_message(
                         format!(
-                            "Rule {} match: \
-                                         {} on [{}](https://lichess.org/@/{}?mod). \
+                            "Rule {} match: [{}](https://lichess.org/@/{}?mod)\n\
+                                         {}\n\
                                          {} previous matches. \
                                          Recent matches: {}",
                             &rule.name,
+                            &user.username.0,
+                            &user.username.0,
                             &rule.criterion.friendly(),
-                            &user.username.0,
-                            &user.username.0,
                             &rule.match_count,
                             if rule.most_recent_caught.len() == 0 {
                                 "None".to_string()
@@ -270,23 +270,25 @@ fn handle_team_event(
             continue;
         }
 
-        let rule_match = match rule.criterion {
-            Criterion::UsernameContains(ref pattern) => {
-                team.name.to_uppercase().contains(&pattern.to_uppercase())
-                    || team
-                        .team_id
-                        .to_uppercase()
-                        .contains(&pattern.to_uppercase())
-            }
+        let (name_match, id_match) = match rule.criterion {
+            Criterion::UsernameContains(ref pattern) => (
+                team.name.to_uppercase().contains(&pattern.to_uppercase()),
+                team.team_id.to_uppercase().contains(&pattern.to_uppercase()),
+            ),
             Criterion::UsernameRegex(ref regex) => {
-                regex.is_match(&team.name) || regex.is_match(&team.team_id)
+                (regex.is_match(&team.name), regex.is_match(&team.team_id))
             }
-            _ => false,
+            _ => (false, false),
         };
 
-        if rule_match {
+        if name_match || id_match {
+            let team_ref = if name_match {
+                format!("[{}](https://lichess.org/team/{})", &team.name, &team.team_id)
+            } else {
+                format!("/team/{}", &team.team_id)
+            };
             zulip::web::post_message(
-                format!("Rule {} match: /team/{}", &rule.name, &team.team_id),
+                format!("Rule {} match: {}", &rule.name, team_ref),
                 zulip_bot_id,
                 zulip_bot_token,
                 zulip_notify_stream,

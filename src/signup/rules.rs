@@ -12,6 +12,7 @@ use regex::Regex;
 use rlua;
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::BTreeMap,
     fs::{File, OpenOptions},
     sync::mpsc::Sender,
     time::Instant,
@@ -112,17 +113,29 @@ impl SignupRulesManager {
         Ok(())
     }
 
-    pub fn list_names(&self) -> Vec<String> {
-        self.rules
-            .iter()
-            .map(|r| {
-                if r.enabled {
-                    r.name.clone()
-                } else {
-                    format!("({})", &r.name)
-                }
-            })
-            .collect()
+    pub fn list_by_tag(&self) -> String {
+        let mut tagged: BTreeMap<&str, Vec<String>> = BTreeMap::new();
+        let mut others: Vec<String> = vec![];
+        for r in &self.rules {
+            let name = if r.enabled {
+                r.name.clone()
+            } else {
+                format!("({})", &r.name)
+            };
+            match r.tag() {
+                Some(tag) => tagged.entry(tag).or_default().push(name),
+                None => others.push(name),
+            }
+        }
+
+        let mut lines = vec![format!("Current rules ({}):", self.rules.len())];
+        for (tag, names) in &tagged {
+            lines.push(format!("**{}** ({}): {}", tag, names.len(), names.join(", ")));
+        }
+        if !others.is_empty() {
+            lines.push(format!("**Others** ({}): {}", others.len(), others.join(", ")));
+        }
+        lines.join("\n")
     }
 
     pub fn caught(
@@ -376,6 +389,29 @@ mod tests {
         assert_eq!(
             rule_named("plain-rule").notify_topic("default", "Watcher"),
             "default"
+        );
+    }
+
+    #[test]
+    fn list_groups_rules_by_tag_with_others_last() {
+        let mut disabled = rule_named("Ru:c");
+        disabled.enabled = false;
+        let manager = SignupRulesManager {
+            rules: vec![
+                rule_named("rule1"),
+                rule_named("Ru:a"),
+                rule_named("De:x"),
+                rule_named("Ru:b"),
+                disabled,
+            ],
+            rules_path: String::new(),
+        };
+        assert_eq!(
+            manager.list_by_tag(),
+            "Current rules (5):\n\
+             **De** (1): De:x\n\
+             **Ru** (3): Ru:a, Ru:b, (Ru:c)\n\
+             **Others** (1): rule1"
         );
     }
 }

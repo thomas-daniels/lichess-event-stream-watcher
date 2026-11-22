@@ -489,7 +489,7 @@ pub fn handle_events(
                 );
             }
             Event::InternalListRules => zulip::web::post_message(
-                format!("Current rules: {}", rule_manager.list_names().join(", ")),
+                rule_manager.list_by_tag(),
                 zulip_bot_id,
                 zulip_bot_token,
                 zulip_command_stream,

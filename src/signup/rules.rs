@@ -282,7 +282,7 @@ impl Criterion {
             Criterion::UseragentLengthLte(l) => {
                 format!("User agent length is less than or equal to {}", l)
             }
-            Criterion::Lua(code) => format!("Lua code `{}` evaluates to true.", code),
+            Criterion::Lua(code) => format!("Lua code `{}` evaluates to true", code),
         }
     }
 }

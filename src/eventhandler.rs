@@ -178,7 +178,7 @@ fn handle_signup_event(
                             {
                                 zulip::web::post_message(
                                     format!(
-                                        "Rule {} match: [{}](https://lichess.org/@/{}?mod)",
+                                        "{} rule: [{}](https://lichess.org/@/{}?mod)",
                                         &rule.name, &user.username.0, &user_id
                                     ),
                                     zulip_bot_id,
@@ -288,7 +288,7 @@ fn handle_team_event(
                 format!("/team/{}", &team.team_id)
             };
             zulip::web::post_message(
-                format!("Rule {} match: {}", &rule.name, team_ref),
+                format!("{} rule: {}", &rule.name, team_ref),
                 zulip_bot_id,
                 zulip_bot_token,
                 zulip_notify_stream,

@@ -395,19 +395,21 @@ pub fn handle_events(
                 }
             },
             Event::InternalShowRule(name) => {
+                let format_time =
+                    |d: DateTime<Utc>| d.format("%Y-%m-%d %H:%M:%S UTC").to_string();
                 let zulip_message = match rule_manager.find_rule(name) {
                     None => "No such rule found.".to_owned(),
                     Some(rule) => format!(
                         "Created at: {}. Latest match: {}.\nCriterion: {}.\nActions: {:?}{}{}",
-                        rule.creation_date,
+                        format_time(rule.creation_date),
                         rule.latest_match_date
-                            .map(|d| d.to_string())
+                            .map(format_time)
                             .unwrap_or("Never".to_owned()),
                         rule.criterion.friendly(),
                         rule.actions,
                         if rule.no_delay { ". No delay" } else { "" },
                         if let Some(expiry) = rule.expiry {
-                            format!(". Expires: {}", expiry)
+                            format!(". Expires: {}", format_time(expiry))
                         } else {
                             "".to_owned()
                         },

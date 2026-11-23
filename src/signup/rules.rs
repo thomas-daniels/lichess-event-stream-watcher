@@ -114,6 +114,7 @@ impl SignupRulesManager {
     }
 
     pub fn list_by_tag(&self) -> String {
+        let mut with_actions: Vec<String> = vec![];
         let mut tagged: BTreeMap<&str, Vec<String>> = BTreeMap::new();
         let mut others: Vec<String> = vec![];
         for r in &self.rules {
@@ -122,6 +123,10 @@ impl SignupRulesManager {
             } else {
                 format!("({})", &r.name)
             };
+            if r.actions.iter().any(|a| *a != Action::NotifyZulip) {
+                with_actions.push(name);
+                continue;
+            }
             match r.tag() {
                 Some(tag) => tagged.entry(tag).or_default().push(name),
                 None => others.push(name),
@@ -129,6 +134,13 @@ impl SignupRulesManager {
         }
 
         let mut lines = vec![format!("Current rules ({}):", self.rules.len())];
+        if !with_actions.is_empty() {
+            lines.push(format!(
+                "**Actions** ({}): {}",
+                with_actions.len(),
+                with_actions.join(", ")
+            ));
+        }
         for (tag, names) in &tagged {
             lines.push(format!("**{}** ({}): {}", tag, names.len(), names.join(", ")));
         }
@@ -393,14 +405,22 @@ mod tests {
     }
 
     #[test]
-    fn list_groups_rules_by_tag_with_others_last() {
+    fn list_puts_action_rules_first_then_groups_by_tag_with_others_last() {
         let mut disabled = rule_named("Ru:c");
         disabled.enabled = false;
+        let mut tagged_ban = rule_named("Ru:ban");
+        tagged_ban.actions = vec![Action::Shadowban, Action::NotifyZulip];
+        let mut close = rule_named("closer");
+        close.actions = vec![Action::Close];
+        let mut notify_only = rule_named("Ru:a");
+        notify_only.actions = vec![Action::NotifyZulip];
         let manager = SignupRulesManager {
             rules: vec![
                 rule_named("rule1"),
-                rule_named("Ru:a"),
+                tagged_ban,
+                notify_only,
                 rule_named("De:x"),
+                close,
                 rule_named("Ru:b"),
                 disabled,
             ],
@@ -408,7 +428,8 @@ mod tests {
         };
         assert_eq!(
             manager.list_by_tag(),
-            "Current rules (5):\n\
+            "Current rules (7):\n\
+             **Actions** (2): Ru:ban, closer\n\
              **De** (1): De:x\n\
              **Ru** (3): Ru:a, Ru:b, (Ru:c)\n\
              **Others** (1): rule1"

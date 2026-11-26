@@ -184,7 +184,7 @@ fn handle_signup_event(
                             {
                                 zulip::web::post_message(
                                     format!(
-                                        "Rule {} match: [{}](https://lichess.org/@/{}?mod)",
+                                        "{} rule: [{}](https://lichess.org/@/{}?mod)",
                                         &rule.name, &user.username.0, &user_id
                                     ),
                                     zulip_bot_id,
@@ -206,14 +206,14 @@ fn handle_signup_event(
                 if rule.actions.len() > 1 || !rule.actions.get(0).eq(&Some(&Action::NotifyZulip)) {
                     zulip::web::post_message(
                         format!(
-                            "Rule {} match: \
-                                         {} on [{}](https://lichess.org/@/{}?mod). \
+                            "Rule {} match: [{}](https://lichess.org/@/{}?mod)\n\
+                                         {}\n\
                                          {} previous matches. \
                                          Recent matches: {}",
                             &rule.name,
+                            &user.username.0,
+                            &user.username.0,
                             &rule.criterion.friendly(),
-                            &user.username.0,
-                            &user.username.0,
                             &rule.match_count,
                             if rule.most_recent_caught.len() == 0 {
                                 "None".to_string()
@@ -284,23 +284,25 @@ fn handle_team_event(
             continue;
         }
 
-        let rule_match = match rule.criterion {
-            Criterion::UsernameContains(ref pattern) => {
-                team.name.to_uppercase().contains(&pattern.to_uppercase())
-                    || team
-                        .team_id
-                        .to_uppercase()
-                        .contains(&pattern.to_uppercase())
-            }
+        let (name_match, id_match) = match rule.criterion {
+            Criterion::UsernameContains(ref pattern) => (
+                team.name.to_uppercase().contains(&pattern.to_uppercase()),
+                team.team_id.to_uppercase().contains(&pattern.to_uppercase()),
+            ),
             Criterion::UsernameRegex(ref regex) => {
-                regex.is_match(&team.name) || regex.is_match(&team.team_id)
+                (regex.is_match(&team.name), regex.is_match(&team.team_id))
             }
-            _ => false,
+            _ => (false, false),
         };
 
-        if rule_match {
+        if name_match || id_match {
+            let team_ref = if name_match {
+                format!("[{}](https://lichess.org/team/{})", &team.name, &team.team_id)
+            } else {
+                format!("/team/{}", &team.team_id)
+            };
             zulip::web::post_message(
-                format!("Rule {} match: /team/{}", &rule.name, &team.team_id),
+                format!("{} rule: {}", &rule.name, team_ref),
                 zulip_bot_id,
                 zulip_bot_token,
                 zulip_notify_stream,
@@ -410,19 +412,21 @@ pub fn handle_events(
                 }
             },
             Event::InternalShowRule(name) => {
+                let format_time =
+                    |d: DateTime<Utc>| d.format("%Y-%m-%d %H:%M:%S UTC").to_string();
                 let zulip_message = match rule_manager.find_rule(name) {
                     None => "No such rule found.".to_owned(),
                     Some(rule) => format!(
                         "Created at: {}. Latest match: {}.\nCriterion: {}.\nActions: {:?}{}{}",
-                        rule.creation_date,
+                        format_time(rule.creation_date),
                         rule.latest_match_date
-                            .map(|d| d.to_string())
+                            .map(format_time)
                             .unwrap_or("Never".to_owned()),
                         rule.criterion.friendly(),
                         rule.actions,
                         if rule.no_delay { ". No delay" } else { "" },
                         if let Some(expiry) = rule.expiry {
-                            format!(". Expires: {}", expiry)
+                            format!(". Expires: {}", format_time(expiry))
                         } else {
                             "".to_owned()
                         },

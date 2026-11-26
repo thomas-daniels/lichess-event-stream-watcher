@@ -71,49 +71,46 @@ impl UserData for User {
 
 pub fn new_lua() -> Lua {
     let l = Lua::new();
-    l.context(|lua_ctx| {
-        let regex_fn = lua_ctx
-            .create_function(
-                |_, (text, pattern): (String, String)| match Regex::new(&pattern) {
-                    Ok(re) => Ok(re.is_match(&text)),
-                    Err(_) => Err(rlua::Error::RuntimeError(String::from(
-                        "Error in 'regex' function",
-                    ))),
-                },
-            )
-            .unwrap();
-        let is_in_ip_range = lua_ctx
-            .create_function(|_, (ip, min, max): (String, String, String)| {
-                let addr = ip.parse();
-                let min_addr = min.parse();
-                let max_addr = max.parse();
-                if addr.is_err() || min_addr.is_err() || max_addr.is_err() {
-                    Err(rlua::Error::RuntimeError(String::from(
-                        "Invalid IP in one of the arguments",
-                    )))
-                } else {
-                    let addr: IpAddr = addr.unwrap();
-                    let min_addr: IpAddr = min_addr.unwrap();
-                    let max_addr: IpAddr = max_addr.unwrap();
-                    Ok(addr >= min_addr && addr <= max_addr)
-                }
-            })
-            .unwrap();
-        let globals = lua_ctx.globals();
+    let regex_fn = l
+        .create_function(
+            |_, (text, pattern): (String, String)| match Regex::new(&pattern) {
+                Ok(re) => Ok(re.is_match(&text)),
+                Err(_) => Err(rlua::Error::RuntimeError(String::from(
+                    "Error in 'regex' function",
+                ))),
+            },
+        )
+        .unwrap();
+    let is_in_ip_range = l
+        .create_function(|_, (ip, min, max): (String, String, String)| {
+            let addr = ip.parse();
+            let min_addr = min.parse();
+            let max_addr = max.parse();
+            if addr.is_err() || min_addr.is_err() || max_addr.is_err() {
+                Err(rlua::Error::RuntimeError(String::from(
+                    "Invalid IP in one of the arguments",
+                )))
+            } else {
+                let addr: IpAddr = addr.unwrap();
+                let min_addr: IpAddr = min_addr.unwrap();
+                let max_addr: IpAddr = max_addr.unwrap();
+                Ok(addr >= min_addr && addr <= max_addr)
+            }
+        })
+        .unwrap();
+    {
+        let globals = l.globals();
         globals.set("regex", regex_fn).unwrap();
         globals.set("isInIpRange", is_in_ip_range).unwrap();
-    });
+    }
+
     l
 }
 
 pub fn call_constraints_function(rule: &str, user: User, l: &Lua) -> Result<bool, rlua::Error> {
-    let mut v: bool = false;
-    l.context(|lua_ctx| {
-        let f: Function = lua_ctx
-            .load(&("function(user) return ".to_owned() + rule + " end"))
-            .eval()?;
-        v = f.call::<_, bool>(user)?;
-        Ok(())
-    })?;
+    let f: Function = l
+        .load(&("function(user) return ".to_owned() + rule + " end"))
+        .eval()?;
+    let v = f.call::<_, bool>(user)?;
     Ok(v)
 }

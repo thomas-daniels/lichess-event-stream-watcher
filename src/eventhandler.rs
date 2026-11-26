@@ -54,9 +54,12 @@ fn handle_signup_event(
     let mut user = user;
     let parsed_ip = user.ip.0.parse::<IpAddr>();
     match parsed_ip {
-        Ok(ip) => match geoip_reader.lookup::<geoip2::City>(ip) {
+        Ok(ip) => match geoip_reader
+            .lookup(ip)
+            .and_then(|r| r.decode::<geoip2::City>())
+        {
             Ok(city) => {
-                user.geoip = Some(GeoipInfo::from_maxminddb_city(city));
+                user.geoip = city.map(GeoipInfo::from_maxminddb_city);
             }
             Err(e) => {
                 println!("Error reading GeoIP database: {}", e);

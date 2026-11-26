@@ -63,7 +63,7 @@ fn default_susp_ip() -> bool {
     false
 }
 
-#[derive(Deserialize, Serialize, Clone, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, Eq, Default)]
 pub struct GeoipInfo {
     pub country: Option<String>,
     pub city: Option<String>,
@@ -73,16 +73,13 @@ pub struct GeoipInfo {
 impl GeoipInfo {
     pub fn from_maxminddb_city(city: geoip2::City) -> GeoipInfo {
         GeoipInfo {
-            country: city
-                .country
-                .and_then(|x| x.names)
-                .map(|y| y["en"].to_owned()),
-            city: city.city.and_then(|x| x.names).map(|y| y["en"].to_owned()),
-            subdivisions: city.subdivisions.map(|z| {
-                z.iter()
-                    .flat_map(|x| (&x.names).as_ref().map(|y| y["en"].to_owned()))
-                    .collect()
-            }),
+            country: city.country.names.english.map(str::to_string),
+            city: city.city.names.english.map(str::to_string),
+            subdivisions: city
+                .subdivisions
+                .iter()
+                .map(|x| x.names.english.map(str::to_string))
+                .collect(),
         }
     }
 }

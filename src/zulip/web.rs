@@ -90,12 +90,7 @@ pub fn should_move_to_processed(message: &Value, bot_id: &str, cfg: &ProcessedMo
         return false;
     }
 
-    let stream_id = message
-        .get("stream_id")
-        .and_then(|v| v.as_i64())
-        .map(|id| id.to_string());
-    let in_notify_stream = str_field("display_recipient") == cfg.notify_stream
-        || stream_id.as_deref() == Some(cfg.notify_stream);
+    let in_notify_stream = str_field("display_recipient") == cfg.notify_stream;
 
     let topic = str_field("subject");
     in_notify_stream
@@ -202,11 +197,6 @@ mod tests {
     fn moves_bot_messages_from_notify_topics() {
         assert!(moves("bot@z", "mod-notify", "default", &CFG));
         assert!(moves("bot@z", "mod-notify", "Watcher: Ru", &CFG));
-        let by_id = ProcessedMove {
-            notify_stream: "42",
-            ..CFG
-        };
-        assert!(moves("bot@z", "mod-notify", "default", &by_id));
     }
 
     #[test]

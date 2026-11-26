@@ -287,7 +287,9 @@ fn handle_team_event(
         let (name_match, id_match) = match rule.criterion {
             Criterion::UsernameContains(ref pattern) => (
                 team.name.to_uppercase().contains(&pattern.to_uppercase()),
-                team.team_id.to_uppercase().contains(&pattern.to_uppercase()),
+                team.team_id
+                    .to_uppercase()
+                    .contains(&pattern.to_uppercase()),
             ),
             Criterion::UsernameRegex(ref regex) => {
                 (regex.is_match(&team.name), regex.is_match(&team.team_id))
@@ -297,7 +299,10 @@ fn handle_team_event(
 
         if name_match || id_match {
             let team_ref = if name_match {
-                format!("[{}](https://lichess.org/team/{})", &team.name, &team.team_id)
+                format!(
+                    "[{}](https://lichess.org/team/{})",
+                    &team.name, &team.team_id
+                )
             } else {
                 format!("/team/{}", &team.team_id)
             };
@@ -412,8 +417,7 @@ pub fn handle_events(
                 }
             },
             Event::InternalShowRule(name) => {
-                let format_time =
-                    |d: DateTime<Utc>| d.format("%Y-%m-%d %H:%M:%S UTC").to_string();
+                let format_time = |d: DateTime<Utc>| d.format("%Y-%m-%d %H:%M:%S UTC").to_string();
                 let zulip_message = match rule_manager.find_rule(name) {
                     None => "No such rule found.".to_owned(),
                     Some(rule) => format!(

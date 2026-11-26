@@ -142,10 +142,19 @@ impl SignupRulesManager {
             ));
         }
         for (tag, names) in &tagged {
-            lines.push(format!("**{}** ({}): {}", tag, names.len(), names.join(", ")));
+            lines.push(format!(
+                "**{}** ({}): {}",
+                tag,
+                names.len(),
+                names.join(", ")
+            ));
         }
         if !others.is_empty() {
-            lines.push(format!("**Others** ({}): {}", others.len(), others.join(", ")));
+            lines.push(format!(
+                "**Others** ({}): {}",
+                others.len(),
+                others.join(", ")
+            ));
         }
         lines.join("\n")
     }
